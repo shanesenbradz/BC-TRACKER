@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="blue">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>B.C Tracker</title>
+<meta name="description" content="Fasting, calorie and workout tracker">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B.C Tracker">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="screen-auth" class="screen active">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <div class="auth-mark">BC</div>
+      <h1>B.C Tracker</h1>
+      <p class="auth-sub">Fasting, food and workouts in one place</p>
+    </div>
+
+    <div id="auth-welcome" class="auth-panel">
+      <div id="profile-list" class="profile-list"></div>
+      <div id="no-profiles" class="empty-note" style="display:none;">No profiles yet. Create one to get started.</div>
+      <button id="btn-show-create" class="btn btn-primary btn-block">Create profile</button>
+    </div>
+
+    <div id="auth-login" class="auth-panel hidden">
+      <button class="link-back" data-back="auth-welcome">Back</button>
+      <h2 id="login-name-label">Enter passcode</h2>
+      <input type="password" inputmode="numeric" maxlength="6" id="login-passcode" class="input input-passcode" placeholder="Passcode" autocomplete="off">
+      <div id="login-error" class="form-error"></div>
+      <button id="btn-login" class="btn btn-primary btn-block">Log in</button>
+    </div>
+
+    <div id="auth-create" class="auth-panel hidden">
+      <button class="link-back" data-back="auth-welcome">Back</button>
+      <h2>Create profile</h2>
+      <label class="field-label">Name</label>
+      <input type="text" id="create-name" class="input" placeholder="Your name" autocomplete="off">
+      <label class="field-label">Passcode (4-6 digits)</label>
+      <input type="password" inputmode="numeric" maxlength="6" id="create-passcode" class="input" placeholder="Choose a passcode" autocomplete="off">
+      <label class="field-label">Confirm passcode</label>
+      <input type="password" inputmode="numeric" maxlength="6" id="create-passcode-confirm" class="input" placeholder="Confirm passcode" autocomplete="off">
+      <label class="field-label">Sex</label>
+      <div class="segmented" id="create-sex">
+        <button type="button" class="seg-btn active" data-value="female">Female</button>
+        <button type="button" class="seg-btn" data-value="male">Male</button>
+      </div>
+      <div id="create-error" class="form-error"></div>
+      <button id="btn-create" class="btn btn-primary btn-block">Create profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen">
+  <header class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <button id="btn-theme" class="icon-btn" aria-label="Toggle theme">
+      <svg id="theme-icon" viewBox="0 0 24 24" class="theme-icon"></svg>
+    </button>
+  </header>
+
+  <main class="views">
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="greeting" id="greeting-text">Hello</div>
+
+      <div class="card ring-card">
+        <div class="ring-wrap">
+          <svg id="fast-ring" viewBox="0 0 240 240" class="ring-svg">
+            <circle class="ring-track" cx="120" cy="120" r="104"></circle>
+            <g id="ring-segments"></g>
+            <circle class="ring-progress" id="ring-progress" cx="120" cy="120" r="104"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-elapsed" id="ring-elapsed">0:00</div>
+            <div class="ring-label" id="ring-status">Not fasting</div>
+          </div>
+        </div>
+        <div class="stage-info">
+          <div class="stage-name" id="stage-name">Start a fast to see stages</div>
+          <div class="stage-desc" id="stage-desc">Set your last meal time on the Fasting tab.</div>
+        </div>
+      </div>
+
+      <div class="card-row">
+        <div class="card stat-card">
+          <div class="stat-label">Eaten today</div>
+          <div class="stat-value" id="dash-eaten">0</div>
+          <div class="stat-unit">calories</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label" id="dash-balance-label">Balance</div>
+          <div class="stat-value" id="dash-balance">0</div>
+          <div class="stat-unit" id="dash-balance-unit">calories</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-row-header">
+          <div class="card-title">Next meal</div>
+        </div>
+        <div class="next-meal-time" id="dash-next-meal">Set your last meal time</div>
+      </div>
+
+      <div class="card">
+        <div class="card-row-header">
+          <div class="card-title">Workouts today</div>
+        </div>
+        <div id="dash-workouts" class="dash-workout-list"></div>
+      </div>
+    </section>
+
+    <!-- FASTING -->
+    <section id="view-fasting" class="view">
+      <div class="card">
+        <div class="card-title">Fasting plan</div>
+        <div class="segmented segmented-3" id="fast-plan-select">
+          <button type="button" class="seg-btn" data-value="10">10 hr</button>
+          <button type="button" class="seg-btn" data-value="12">12 hr</button>
+          <button type="button" class="seg-btn" data-value="16">16 hr</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Last meal</div>
+        <input type="datetime-local" id="last-meal-input" class="input">
+        <button id="btn-set-last-meal" class="btn btn-secondary btn-block">Save last meal time</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Your fasting window</div>
+        <div class="window-row">
+          <div class="window-item">
+            <div class="window-label">Started</div>
+            <div class="window-value" id="fast-start-display">--</div>
+          </div>
+          <div class="window-item">
+            <div class="window-label">Next meal</div>
+            <div class="window-value" id="fast-end-display">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">What happens during a fast</div>
+        <div id="stage-timeline" class="stage-timeline"></div>
+        <div class="disclaimer">General information based on commonly cited fasting research. Not medical advice.</div>
+      </div>
+    </section>
+
+    <!-- FOOD -->
+    <section id="view-food" class="view">
+      <div class="card-row">
+        <div class="card stat-card">
+          <div class="stat-label">Eaten today</div>
+          <div class="stat-value" id="food-eaten">0</div>
+          <div class="stat-unit">calories</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-label">Daily goal</div>
+          <div class="stat-value" id="food-goal">0</div>
+          <div class="stat-unit">calories</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Add food</div>
+        <input type="text" id="food-search" class="input" placeholder="Search known foods">
+        <div id="food-search-results" class="food-results"></div>
+
+        <div class="divider-label">Or add your own</div>
+        <div class="custom-food-row">
+          <input type="text" id="custom-food-name" class="input" placeholder="Food name">
+          <input type="number" id="custom-food-calories" class="input input-narrow" placeholder="Cal" inputmode="numeric">
+        </div>
+        <button id="btn-add-custom-food" class="btn btn-secondary btn-block">Add to log</button>
+      </div>
+
+      <div class="card">
+        <div class="card-row-header">
+          <div class="card-title">Today's log</div>
+        </div>
+        <div id="food-log-list" class="food-log-list"></div>
+        <div id="food-log-empty" class="empty-note">Nothing logged yet today.</div>
+      </div>
+    </section>
+
+    <!-- WORKOUTS -->
+    <section id="view-workouts" class="view">
+      <div class="card">
+        <div class="card-title">Add a workout</div>
+        <input type="text" id="workout-name-input" class="input" placeholder="Workout name">
+        <input type="text" id="workout-detail-input" class="input" placeholder="Details, e.g. 3 sets of 12">
+        <button id="btn-add-workout" class="btn btn-secondary btn-block">Add workout</button>
+      </div>
+
+      <div class="card">
+        <div class="card-row-header">
+          <div class="card-title">Checklist</div>
+        </div>
+        <div id="workout-list" class="workout-list"></div>
+        <div id="workout-empty" class="empty-note">No workouts added yet.</div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="view-profile" class="view">
+      <div class="card">
+        <div class="card-title">Profile</div>
+        <label class="field-label">Name</label>
+        <input type="text" id="profile-name" class="input">
+        <label class="field-label">Sex</label>
+        <div class="segmented" id="profile-sex">
+          <button type="button" class="seg-btn" data-value="female">Female</button>
+          <button type="button" class="seg-btn" data-value="male">Male</button>
+        </div>
+        <label class="field-label">Daily calorie goal</label>
+        <input type="number" id="profile-goal" class="input" inputmode="numeric">
+        <button id="btn-save-profile" class="btn btn-secondary btn-block">Save</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">BMI calculator</div>
+        <div class="segmented" id="bmi-unit-select">
+          <button type="button" class="seg-btn active" data-value="metric">cm / kg</button>
+          <button type="button" class="seg-btn" data-value="imperial">ft-in / lb</button>
+        </div>
+        <div id="bmi-metric-fields">
+          <label class="field-label">Height (cm)</label>
+          <input type="number" id="bmi-height-cm" class="input" inputmode="decimal">
+          <label class="field-label">Weight (kg)</label>
+          <input type="number" id="bmi-weight-kg" class="input" inputmode="decimal">
+        </div>
+        <div id="bmi-imperial-fields" class="hidden">
+          <label class="field-label">Height</label>
+          <div class="custom-food-row">
+            <input type="number" id="bmi-height-ft" class="input input-narrow" placeholder="ft" inputmode="decimal">
+            <input type="number" id="bmi-height-in" class="input input-narrow" placeholder="in" inputmode="decimal">
+          </div>
+          <label class="field-label">Weight (lb)</label>
+          <input type="number" id="bmi-weight-lb" class="input" inputmode="decimal">
+        </div>
+        <button id="btn-calc-bmi" class="btn btn-secondary btn-block">Calculate BMI</button>
+        <div id="bmi-result" class="bmi-result hidden">
+          <div class="bmi-number" id="bmi-number">--</div>
+          <div class="bmi-category" id="bmi-category">--</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Appearance</div>
+        <div class="field-label">Accent colour</div>
+        <div id="accent-picker" class="accent-picker"></div>
+      </div>
+
+      <div class="card">
+        <button id="btn-logout" class="btn btn-danger btn-block">Log out</button>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab-btn active" data-view="dashboard">
+      <svg viewBox="0 0 24 24" class="tab-icon"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5v4.5l3 2"></path></svg>
+      <span>Today</span>
+    </button>
+    <button class="tab-btn" data-view="fasting">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M12 3v2M12 3a9 9 0 1 1-6.36 2.64"></path><path d="M4 5l1.6 1.6"></path><path d="M12 8v4.2l2.8 1.8"></path></svg>
+      <span>Fasting</span>
+    </button>
+    <button class="tab-btn" data-view="food">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M6 3v7a2 2 0 0 0 2 2v9"></path><path d="M6 3v5M9 3v5"></path><path d="M17 3c-1.7 0-3 2-3 5s1 5 3 5v9"></path></svg>
+      <span>Food</span>
+    </button>
+    <button class="tab-btn" data-view="workouts">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M4 8v8M20 8v8"></path><path d="M2 10v4M22 10v4"></path><path d="M7 12h10"></path><path d="M7 9v6M17 9v6"></path></svg>
+      <span>Workouts</span>
+    </button>
+    <button class="tab-btn" data-view="profile">
+      <svg viewBox="0 0 24 24" class="tab-icon"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5"></path></svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+</div>
+
+<script src="js/foods.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
