@@ -268,7 +268,6 @@ html[data-accent="teal"]   { --accent: var(--teal); }
   margin-bottom: 14px;
   gap: 2px;
 }
-.segmented-3 .seg-btn { flex: 1; }
 
 .seg-btn {
   flex: 1;
@@ -699,6 +698,67 @@ html[data-accent="teal"]   { --accent: var(--teal); }
   stroke-linejoin: round;
 }
 
+/* Fasting plan pill grid (replaces a cramped segmented control now
+   that there are more plan lengths to choose from) */
+.plan-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.plan-grid .seg-btn {
+  flex: 0 0 auto;
+  background: var(--fill);
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+.plan-grid .seg-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------
+   History
+--------------------------------------------------------- */
+.history-list { display: flex; flex-direction: column; gap: 10px; }
+
+.history-day {
+  background: var(--card-2);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.history-date { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+.history-row strong { color: var(--text-primary); font-weight: 600; text-align: right; }
+
+.history-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-tertiary);
+  margin: 10px 0 6px;
+  font-weight: 700;
+}
+
+.history-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-chip {
+  background: var(--fill);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
 /* ---------------------------------------------------------
    Desktop layout
 --------------------------------------------------------- */
