@@ -28,6 +28,9 @@
       <div id="profile-list" class="profile-list"></div>
       <div id="no-profiles" class="empty-note" style="display:none;">No profiles yet. Create one to get started.</div>
       <button id="btn-show-create" class="btn btn-primary btn-block">Create profile</button>
+      <button id="btn-show-restore" class="btn btn-secondary btn-block" style="margin-top:10px;">Restore from backup</button>
+      <input type="file" id="restore-file-input" accept="application/json" class="hidden">
+      <div id="restore-error" class="form-error"></div>
     </div>
 
     <div id="auth-login" class="auth-panel hidden">
@@ -123,10 +126,14 @@
     <section id="view-fasting" class="view">
       <div class="card">
         <div class="card-title">Fasting plan</div>
-        <div class="segmented segmented-3" id="fast-plan-select">
+        <div class="plan-grid" id="fast-plan-select">
           <button type="button" class="seg-btn" data-value="10">10 hr</button>
           <button type="button" class="seg-btn" data-value="12">12 hr</button>
           <button type="button" class="seg-btn" data-value="16">16 hr</button>
+          <button type="button" class="seg-btn" data-value="18">18 hr</button>
+          <button type="button" class="seg-btn" data-value="24">24 hr</button>
+          <button type="button" class="seg-btn" data-value="30">30 hr</button>
+          <button type="button" class="seg-btn" data-value="42">42 hr</button>
         </div>
       </div>
 
@@ -212,6 +219,15 @@
       </div>
     </section>
 
+    <!-- HISTORY -->
+    <section id="view-history" class="view">
+      <div class="card">
+        <div class="card-title">Daily history</div>
+        <div id="history-list" class="history-list"></div>
+        <div id="history-empty" class="empty-note">Nothing logged yet. Your daily activity will show up here.</div>
+      </div>
+    </section>
+
     <!-- PROFILE -->
     <section id="view-profile" class="view">
       <div class="card">
@@ -263,6 +279,15 @@
       </div>
 
       <div class="card">
+        <div class="card-title">Backup your data</div>
+        <div class="stage-desc" style="margin-bottom:12px;">Download a backup file and keep it somewhere safe. If you clear your browser or switch devices, restore from that file to pick up where you left off, including your profile and passcode.</div>
+        <button id="btn-export" class="btn btn-secondary btn-block">Download backup</button>
+        <button id="btn-import" class="btn btn-secondary btn-block" style="margin-top:10px;">Restore from file</button>
+        <input type="file" id="import-file-input" accept="application/json" class="hidden">
+        <div id="import-error" class="form-error"></div>
+      </div>
+
+      <div class="card">
         <button id="btn-logout" class="btn btn-danger btn-block">Log out</button>
       </div>
     </section>
@@ -285,6 +310,10 @@
     <button class="tab-btn" data-view="workouts">
       <svg viewBox="0 0 24 24" class="tab-icon"><path d="M4 8v8M20 8v8"></path><path d="M2 10v4M22 10v4"></path><path d="M7 12h10"></path><path d="M7 9v6M17 9v6"></path></svg>
       <span>Workouts</span>
+    </button>
+    <button class="tab-btn" data-view="history">
+      <svg viewBox="0 0 24 24" class="tab-icon"><path d="M4.6 15a8 8 0 1 0 1.4-8.7"></path><path d="M4 4.5v3.5h3.5"></path><path d="M12 8v4.3l3 2"></path></svg>
+      <span>History</span>
     </button>
     <button class="tab-btn" data-view="profile">
       <svg viewBox="0 0 24 24" class="tab-icon"><circle cx="12" cy="8.5" r="3.5"></circle><path d="M5 20c1.2-3.6 4-5.5 7-5.5s5.8 1.9 7 5.5"></path></svg>

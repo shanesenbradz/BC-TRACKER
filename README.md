@@ -8,15 +8,20 @@ device using the browser's local storage.
 
 - Profile creation with a passcode, multiple profiles supported on one device
 - BMI calculator with metric and imperial units
-- Fasting timer with 10, 12 and 16 hour plans, a progress ring, and a stage
-  by stage guide to what is commonly said to happen in the body during a
-  fast (insulin drop, glycogen use, ketosis, autophagy)
+- Fasting timer with 10, 12, 16, 18, 24, 30 and 42 hour plans, a progress
+  ring, and a stage by stage guide to what is commonly said to happen in
+  the body during a fast (insulin drop, glycogen use, ketosis, autophagy)
 - Next meal time calculated from your last meal and chosen fasting plan
+- A history dashboard showing past days: calories eaten versus goal,
+  workouts completed, and fasts finished with planned versus actual length
 - Built in list of common foods with calories, plus the ability to add any
-  food and calorie count of your own
+  food and calorie count of your own. Foods you add are saved and show
+  up in search from then on
 - Daily calorie log with a running total against a daily goal (defaults to
   1500 for women and 2000 for men, editable in Profile)
 - Custom workout list with a checklist you can tick off each day
+- Download a backup file of all your data at any time, and restore from
+  that file later, including on a fresh browser with no profiles saved
 - Dark mode and light mode with a switchable accent colour
 - Installable to a phone home screen as a standalone app
 
@@ -63,6 +68,44 @@ or in a subfolder like a GitHub Pages project site.
 
 Once installed, the app opens full screen without browser controls, and
 works offline after the first load.
+
+## Backing up and restoring your data
+
+Since everything lives in the browser's local storage, clearing your
+browser, switching phones, or reinstalling can wipe your profile. To
+protect against that:
+
+1. Open **Profile** and tap **Download backup**. This saves a `.json`
+   file with your profile and all your logged data.
+2. Keep that file somewhere safe (a notes app, email to yourself, cloud
+   drive, and so on).
+3. If your data ever disappears, open the app and, on the sign-in
+   screen, tap **Restore from backup**, then pick the saved file. Your
+   profile and passcode come back exactly as they were, and you can log
+   in right away.
+4. You can also restore a backup while already logged in, from
+   **Profile > Restore from file**. This replaces the current
+   profile's data with what is in the file, which is useful for moving
+   a backup onto a new device.
+
+Back up regularly, especially before clearing site data or switching
+devices, since there's no automatic cloud copy.
+
+## Pushing updates after the app is already installed
+
+Because the app is installed as a Progressive Web App, it caches its
+files for offline use. After editing any file in this project and
+pushing to GitHub, open `service-worker.js` and bump the version number
+in this line:
+
+```js
+const CACHE_NAME = "bc-tracker-v2";
+```
+
+Change it to `v3`, `v4`, and so on with each update you push. That tells
+installed copies of the app to fetch the new files instead of using the
+old cached ones. Without this step, people who already installed the
+app to their home screen may keep seeing the old version for a while.
 
 ## A note on the passcode
 
