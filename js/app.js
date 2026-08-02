@@ -96,6 +96,8 @@ function defaultData(sex) {
     fastPlan: 12,
     lastMealISO: null,
     foodLog: [],
+    customFoods: [],
+    fastHistory: [],
     workouts: [],
     theme: "dark",
     accent: "blue"
@@ -104,8 +106,16 @@ function defaultData(sex) {
 
 function getData(userId) {
   const raw = localStorage.getItem(dataKey(userId));
-  if (raw) return JSON.parse(raw);
-  return defaultData();
+  const base = defaultData();
+  if (!raw) return base;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (e) { return base; }
+  return Object.assign({}, base, parsed, {
+    foodLog: parsed.foodLog || [],
+    customFoods: parsed.customFoods || [],
+    fastHistory: parsed.fastHistory || [],
+    workouts: parsed.workouts || []
+  });
 }
 function persist() {
   if (currentUser) localStorage.setItem(dataKey(currentUser.id), JSON.stringify(currentData));
@@ -237,6 +247,7 @@ function renderAll() {
   renderFastingPanel();
   renderFood();
   renderWorkouts();
+  renderHistory();
   renderProfileTab();
   renderAccentPicker();
 }
@@ -249,6 +260,7 @@ const VIEW_TITLES = {
   fasting: "Fasting",
   food: "Food",
   workouts: "Workouts",
+  history: "History",
   profile: "Profile"
 };
 
@@ -261,6 +273,7 @@ function setActiveView(view) {
   if (view === "dashboard") { renderRing(); renderDashboardStats(); renderDashboardWorkouts(); }
   if (view === "food") renderFood();
   if (view === "workouts") renderWorkouts();
+  if (view === "history") renderHistory();
   if (view === "profile") renderProfileTab();
 }
 
@@ -452,11 +465,28 @@ function saveLastMeal() {
   if (!val) return;
   const date = new Date(val);
   if (isNaN(date.getTime())) return;
+
+  if (currentData.lastMealISO) {
+    const prevStart = new Date(currentData.lastMealISO);
+    const actualHours = (date.getTime() - prevStart.getTime()) / 3600000;
+    if (actualHours > 0.05) {
+      currentData.fastHistory.unshift({
+        id: uid("fh"),
+        startISO: currentData.lastMealISO,
+        endISO: date.toISOString(),
+        plannedHours: currentData.fastPlan,
+        actualHours: actualHours
+      });
+      if (currentData.fastHistory.length > 200) currentData.fastHistory.length = 200;
+    }
+  }
+
   currentData.lastMealISO = date.toISOString();
   persist();
   renderFastingPanel();
   renderRing();
   renderDashboardStats();
+  renderHistory();
 }
 
 /* ---------------------------------------------------------
@@ -473,8 +503,16 @@ function renderFoodSearchResults(query) {
   wrap.innerHTML = "";
   if (!query) return;
   const q = query.toLowerCase();
-  const matches = KNOWN_FOODS.filter(f => f.name.toLowerCase().includes(q)).slice(0, 8);
-  matches.forEach(f => {
+  const combined = currentData.customFoods.concat(KNOWN_FOODS);
+  const seen = new Set();
+  const matches = [];
+  combined.forEach(f => {
+    const key = f.name.toLowerCase();
+    if (seen.has(key) || !key.includes(q)) return;
+    seen.add(key);
+    matches.push(f);
+  });
+  matches.slice(0, 8).forEach(f => {
     const btn = document.createElement("button");
     btn.className = "food-result-row";
     const nameEl = document.createElement("span");
@@ -507,12 +545,19 @@ function addFoodEntry(name, calories) {
   renderDashboardStats();
 }
 
+function upsertCustomFood(name, calories) {
+  const idx = currentData.customFoods.findIndex(f => f.name.toLowerCase() === name.toLowerCase());
+  if (idx >= 0) currentData.customFoods[idx].calories = Math.round(Number(calories));
+  else currentData.customFoods.unshift({ id: uid("cf"), name: name, calories: Math.round(Number(calories)) });
+}
+
 function addCustomFood() {
   const nameInput = $("#custom-food-name");
   const calInput = $("#custom-food-calories");
   const name = nameInput.value.trim();
   const cal = Number(calInput.value);
   if (!name || !cal || cal <= 0) return;
+  upsertCustomFood(name, cal);
   addFoodEntry(name, cal);
   nameInput.value = "";
   calInput.value = "";
@@ -643,6 +688,181 @@ function removeWorkout(id) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
+}
+
+/* ---------------------------------------------------------
+   History
+--------------------------------------------------------- */
+function dateStrFromISO(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function formatHistoryDate(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (dateStr === todayStr()) return "Today";
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yStr = yesterday.getFullYear() + "-" + String(yesterday.getMonth() + 1).padStart(2, "0") + "-" + String(yesterday.getDate()).padStart(2, "0");
+  if (dateStr === yStr) return "Yesterday";
+  return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+function renderHistory() {
+  const wrap = $("#history-list");
+  wrap.innerHTML = "";
+
+  const map = {};
+  function ensure(d) {
+    if (!map[d]) map[d] = { calories: 0, workoutsDone: [], fasts: [] };
+    return map[d];
+  }
+
+  currentData.foodLog.forEach(f => { ensure(f.date).calories += f.calories; });
+  currentData.workouts.forEach(w => {
+    w.doneDates.forEach(d => ensure(d).workoutsDone.push(w.name));
+  });
+  currentData.fastHistory.forEach(fh => {
+    ensure(dateStrFromISO(fh.endISO)).fasts.push(fh);
+  });
+
+  const dates = Object.keys(map).sort().reverse();
+  $("#history-empty").style.display = dates.length === 0 ? "block" : "none";
+
+  dates.slice(0, 60).forEach(d => {
+    const entry = map[d];
+    const card = document.createElement("div");
+    card.className = "history-day";
+
+    const dateEl = document.createElement("div");
+    dateEl.className = "history-date";
+    dateEl.textContent = formatHistoryDate(d);
+    card.appendChild(dateEl);
+
+    if (entry.calories > 0) {
+      const row = document.createElement("div");
+      row.className = "history-row";
+      const balance = currentData.dailyGoal - entry.calories;
+      const label = document.createElement("span");
+      label.textContent = "Calories";
+      const val = document.createElement("strong");
+      val.textContent = entry.calories + " eaten, " + (balance >= 0 ? balance + " remaining" : Math.abs(balance) + " over");
+      row.appendChild(label);
+      row.appendChild(val);
+      card.appendChild(row);
+    }
+
+    if (entry.workoutsDone.length > 0) {
+      const label = document.createElement("div");
+      label.className = "history-section-label";
+      label.textContent = "Workouts done";
+      card.appendChild(label);
+      const chipWrap = document.createElement("div");
+      chipWrap.className = "history-chip-list";
+      entry.workoutsDone.forEach(name => {
+        const chip = document.createElement("span");
+        chip.className = "history-chip";
+        chip.textContent = name;
+        chipWrap.appendChild(chip);
+      });
+      card.appendChild(chipWrap);
+    }
+
+    if (entry.fasts.length > 0) {
+      const label = document.createElement("div");
+      label.className = "history-section-label";
+      label.textContent = "Fasts completed";
+      card.appendChild(label);
+      entry.fasts.forEach(fh => {
+        const row = document.createElement("div");
+        row.className = "history-row";
+        const l = document.createElement("span");
+        l.textContent = fh.plannedHours + " hr plan";
+        const v = document.createElement("strong");
+        v.textContent = formatDuration(fh.actualHours) + " actual";
+        row.appendChild(l);
+        row.appendChild(v);
+        card.appendChild(row);
+      });
+    }
+
+    wrap.appendChild(card);
+  });
+}
+
+/* ---------------------------------------------------------
+   Backup and restore
+--------------------------------------------------------- */
+function exportBackup() {
+  const payload = {
+    app: "bc-tracker",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    user: currentUser,
+    data: currentData
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "bc-tracker-" + currentUser.name.trim().replace(/\s+/g, "-").toLowerCase() + "-" + todayStr() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function isValidBackup(obj) {
+  return !!(obj && obj.app === "bc-tracker" && obj.user && obj.user.id && obj.data);
+}
+
+function importBackupIntoCurrentProfile(file) {
+  const errEl = $("#import-error");
+  errEl.textContent = "";
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!isValidBackup(parsed)) { errEl.textContent = "That file does not look like a B.C Tracker backup."; return; }
+      currentData = Object.assign({}, defaultData(), parsed.data, {
+        foodLog: parsed.data.foodLog || [],
+        customFoods: parsed.data.customFoods || [],
+        fastHistory: parsed.data.fastHistory || [],
+        workouts: parsed.data.workouts || []
+      });
+      persist();
+      document.documentElement.setAttribute("data-theme", currentData.theme || "dark");
+      document.documentElement.setAttribute("data-accent", currentData.accent || "blue");
+      renderAll();
+    } catch (e) {
+      errEl.textContent = "Could not read that file.";
+    }
+  };
+  reader.readAsText(file);
+}
+
+function restoreFromWelcomeFile(file) {
+  const errEl = $("#restore-error");
+  errEl.textContent = "";
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!isValidBackup(parsed)) { errEl.textContent = "That file does not look like a B.C Tracker backup."; return; }
+      const users = getUsers();
+      const idx = users.findIndex(u => u.id === parsed.user.id);
+      if (idx >= 0) users[idx] = parsed.user;
+      else users.push(parsed.user);
+      saveUsers(users);
+      localStorage.setItem(dataKey(parsed.user.id), JSON.stringify(parsed.data));
+      renderProfileList();
+      showLogin(parsed.user);
+    } catch (e) {
+      errEl.textContent = "Could not read that file.";
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ---------------------------------------------------------
@@ -784,6 +1004,21 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.classList.add("active");
   });
   $("#btn-save-profile").addEventListener("click", saveProfile);
+
+  $("#btn-export").addEventListener("click", exportBackup);
+  $("#btn-import").addEventListener("click", () => $("#import-file-input").click());
+  $("#import-file-input").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (file) importBackupIntoCurrentProfile(file);
+    e.target.value = "";
+  });
+
+  $("#btn-show-restore").addEventListener("click", () => $("#restore-file-input").click());
+  $("#restore-file-input").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (file) restoreFromWelcomeFile(file);
+    e.target.value = "";
+  });
 
   $("#bmi-unit-select").addEventListener("click", e => {
     const btn = e.target.closest(".seg-btn");
