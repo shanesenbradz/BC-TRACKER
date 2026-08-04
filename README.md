@@ -34,6 +34,9 @@ device using the browser's local storage.
 - Download a backup file of all your data at any time, and restore from
   that file later, including on a fresh browser with no profiles saved
 - Dark mode and light mode with a switchable accent colour
+- Your home screen icon matches whichever accent colour is active when
+  you add the app to your home screen (see the note below on how this
+  works and its limits)
 - Installable to a phone home screen as a standalone app
 
 ## Running it locally
@@ -80,6 +83,21 @@ or in a subfolder like a GitHub Pages project site.
 Once installed, the app opens full screen without browser controls, and
 works offline after the first load.
 
+## Matching your home screen icon to your theme colour
+
+In Profile, under Appearance, picking an accent colour also updates the
+icon the app will use the next time it's added to a home screen. So if
+you want a green icon, open the app, set the accent colour to green in
+Profile, and then add it to your home screen, the icon that gets placed
+will be green.
+
+This only affects icons added from that point forward. Phones and web
+browsers do not give websites a way to repaint an icon that's already
+sitting on someone's home screen, so changing the colour after you've
+already installed the app will not update the existing icon. If you
+want to switch colours later, change the accent colour first, then
+remove the old home screen icon and add it again to pick up the new one.
+
 ## Backing up and restoring your data
 
 Since everything lives in the browser's local storage, clearing your
@@ -110,7 +128,7 @@ pushing to GitHub, open `service-worker.js` and bump the version number
 in this line:
 
 ```js
-const CACHE_NAME = "bc-tracker-v3";
+const CACHE_NAME = "bc-tracker-v4";
 ```
 
 Change it to `v3`, `v4`, and so on with each update you push. That tells
@@ -160,6 +178,9 @@ bc-tracker/
   icons/
     icon-192.png
     icon-512.png
+    icon-192-<color>.png
+    icon-512-<color>.png
+    (one pair per accent colour: blue, green, orange, pink, purple, teal)
   manifest.json
   service-worker.js
   README.md

@@ -1,4 +1,4 @@
-const CACHE_NAME = "bc-tracker-v3";
+const CACHE_NAME = "bc-tracker-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,7 +8,19 @@ const ASSETS = [
   "./js/workouts.js",
   "./manifest.json",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./icons/icon-192-blue.png",
+  "./icons/icon-512-blue.png",
+  "./icons/icon-192-green.png",
+  "./icons/icon-512-green.png",
+  "./icons/icon-192-orange.png",
+  "./icons/icon-512-orange.png",
+  "./icons/icon-192-pink.png",
+  "./icons/icon-512-pink.png",
+  "./icons/icon-192-purple.png",
+  "./icons/icon-512-purple.png",
+  "./icons/icon-192-teal.png",
+  "./icons/icon-512-teal.png"
 ];
 
 self.addEventListener("install", event => {
