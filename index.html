@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>B.C Tracker</title>
 <meta name="description" content="Fasting, calorie and workout tracker">
-<meta name="theme-color" content="#0a84ff" id="meta-theme-color">
-<link rel="manifest" href="manifest.json" id="manifest-link">
-<link rel="apple-touch-icon" href="icons/icon-192-blue.png" id="apple-touch-icon-link">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="B.C Tracker">
@@ -94,46 +94,17 @@
         </div>
       </div>
 
-      <div class="card ring-card">
-        <div class="card-title" style="align-self:flex-start;">Calories</div>
-        <div class="ring-wrap">
-          <svg viewBox="0 0 240 240" class="ring-svg">
-            <circle class="ring-track" cx="120" cy="120" r="104"></circle>
-            <circle class="cal-base-goal" id="cal-base-goal" cx="120" cy="120" r="104"></circle>
-            <circle class="cal-base-burnt" id="cal-base-burnt" cx="120" cy="120" r="104"></circle>
-            <circle class="cal-progress" id="cal-progress" cx="120" cy="120" r="104"></circle>
-          </svg>
-          <div class="ring-center">
-            <div class="ring-elapsed" id="cal-remaining">0</div>
-            <div class="ring-label" id="cal-remaining-label">remaining</div>
-          </div>
+      <div class="card-row">
+        <div class="card stat-card">
+          <div class="stat-label">Eaten today</div>
+          <div class="stat-value" id="dash-eaten">0</div>
+          <div class="stat-unit">calories</div>
         </div>
-        <div class="cal-legend">
-          <span class="cal-legend-item"><i class="dot dot-accent"></i>Eaten</span>
-          <span class="cal-legend-item"><i class="dot dot-track"></i>Goal</span>
-          <span class="cal-legend-item"><i class="dot dot-green"></i>Burnt bonus</span>
+        <div class="card stat-card">
+          <div class="stat-label">Daily goal</div>
+          <div class="stat-value" id="dash-goal">0</div>
+          <div class="stat-unit">calories</div>
         </div>
-        <div class="window-row">
-          <div class="window-item">
-            <div class="window-label">Eaten</div>
-            <div class="window-value" id="cal-eaten-val">0</div>
-          </div>
-          <div class="window-item">
-            <div class="window-label">Total budget</div>
-            <div class="window-value" id="cal-total-val">0</div>
-          </div>
-        </div>
-        <div class="window-row">
-          <div class="window-item">
-            <div class="window-label">Workout burnt</div>
-            <div class="window-value" id="cal-workout-val">0</div>
-          </div>
-          <div class="window-item">
-            <div class="window-label">Fasting estimate</div>
-            <div class="window-value" id="cal-fast-burn-val">0</div>
-          </div>
-        </div>
-        <div class="disclaimer">Total budget is your daily goal plus calories burnt. Burnt calories combine logged workouts with a rough estimate based on time spent fasting, not a precise measurement.</div>
       </div>
 
       <div class="card">
@@ -175,14 +146,14 @@
       </div>
 
       <div class="card hidden" id="end-fast-card">
-        <div class="card-title">End fast</div>
+        <div class="card-title">Stop fasting</div>
         <div id="end-fast-prompt">
-          <div class="stage-desc" style="margin-bottom:12px;">Finishing your fast now? Confirm below to log it and start a fresh timer.</div>
-          <button id="btn-end-fast" class="btn btn-secondary btn-block">End fast now</button>
+          <div class="stage-desc" style="margin-bottom:12px;">Done fasting for now? This logs your fast to history and clears your timer. You'll stay stopped until you set a new last meal time.</div>
+          <button id="btn-end-fast" class="btn btn-secondary btn-block">Stop fasting</button>
         </div>
         <div id="end-fast-confirm" class="hidden">
-          <div class="stage-desc" style="margin-bottom:12px;">This logs your current fast to history and starts a new one from right now. Confirm?</div>
-          <button id="btn-end-fast-yes" class="btn btn-danger btn-block">Yes, end it now</button>
+          <div class="stage-desc" style="margin-bottom:12px;">Stop your current fast and log it now?</div>
+          <button id="btn-end-fast-yes" class="btn btn-danger btn-block">Yes, stop fasting</button>
           <button id="btn-end-fast-cancel" class="btn btn-secondary btn-block" style="margin-top:10px;">Cancel</button>
         </div>
       </div>
@@ -326,7 +297,6 @@
         <div class="card-title">Appearance</div>
         <div class="field-label">Accent colour</div>
         <div id="accent-picker" class="accent-picker"></div>
-        <div class="disclaimer" style="margin-top:10px;">Your home screen icon picks up whichever colour is selected here at the moment you add it to your home screen. Changing the colour later will not repaint an icon already on your home screen, that's an operating system limit rather than something the app can control. Remove and re-add the icon to pick up a new colour.</div>
       </div>
 
       <div class="card">

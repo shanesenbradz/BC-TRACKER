@@ -11,17 +11,20 @@ device using the browser's local storage.
 - Fasting timer with 10, 12, 16, 18, 24, 30 and 42 hour plans, a progress
   ring, and a stage by stage guide to what is commonly said to happen in
   the body during a fast (insulin drop, glycogen use, ketosis, autophagy)
-- An "End fast now" option with a confirm step, for finishing a fast
-  early or logging it as done without waiting for the plan length to pass
+- A "Stop fasting" option with a confirm step. Stopping logs your fast to
+  history and clears your timer. Nothing restarts automatically, you stay
+  stopped until you set a new last meal time
 - If you set a last meal time in the past, the app lets you know and
   offers a one-tap way to switch to the current time instead. It still
   lets you save the past time on purpose for retroactive logging
 - Next meal time calculated from your last meal and chosen fasting plan
-- A calories ring on the dashboard showing calories eaten against your
-  total budget (your daily goal plus calories burnt), with a breakdown of
-  workout calories burnt and a rough fasting-based burn estimate
+- Today screen shows calories eaten and your daily goal at a glance
 - A history dashboard showing past days: calories eaten versus goal,
-  workouts completed, and fasts finished with planned versus actual length
+  calories burnt, workouts completed, and fasts finished with planned
+  versus actual length. Calories burnt for a day is whatever you fell
+  short of your goal by (so if you eat less than your goal, the
+  difference counts as burnt) plus any calories from workouts you
+  checked off that day
 - Built in list of common foods with calories, plus the ability to add any
   food and calorie count of your own. Foods you add are saved and show
   up in search from then on
@@ -33,11 +36,10 @@ device using the browser's local storage.
   off for the day counts its calories toward that day's calories burnt
 - Download a backup file of all your data at any time, and restore from
   that file later, including on a fresh browser with no profiles saved
-- Dark mode and light mode with a switchable accent colour
-- Your home screen icon matches whichever accent colour is active when
-  you add the app to your home screen (see the note below on how this
-  works and its limits)
+- Dark mode and light mode with a wide choice of accent colours
 - Installable to a phone home screen as a standalone app
+- Extra settings and customisation live on the Profile page rather than
+  cluttering the main screens, scroll down there to find them
 
 ## Running it locally
 
@@ -83,21 +85,6 @@ or in a subfolder like a GitHub Pages project site.
 Once installed, the app opens full screen without browser controls, and
 works offline after the first load.
 
-## Matching your home screen icon to your theme colour
-
-In Profile, under Appearance, picking an accent colour also updates the
-icon the app will use the next time it's added to a home screen. So if
-you want a green icon, open the app, set the accent colour to green in
-Profile, and then add it to your home screen, the icon that gets placed
-will be green.
-
-This only affects icons added from that point forward. Phones and web
-browsers do not give websites a way to repaint an icon that's already
-sitting on someone's home screen, so changing the colour after you've
-already installed the app will not update the existing icon. If you
-want to switch colours later, change the accent colour first, then
-remove the old home screen icon and add it again to pick up the new one.
-
 ## Backing up and restoring your data
 
 Since everything lives in the browser's local storage, clearing your
@@ -128,13 +115,17 @@ pushing to GitHub, open `service-worker.js` and bump the version number
 in this line:
 
 ```js
-const CACHE_NAME = "bc-tracker-v4";
+const CACHE_NAME = "bc-tracker-v5";
 ```
 
-Change it to `v3`, `v4`, and so on with each update you push. That tells
+Change it to `v6`, `v7`, and so on with each update you push. That tells
 installed copies of the app to fetch the new files instead of using the
 old cached ones. Without this step, people who already installed the
 app to their home screen may keep seeing the old version for a while.
+
+If a browser ever seems stuck on a broken or outdated version even after
+a cache bump, the most reliable fix is to remove the home screen icon
+and any installed app entry, then add it fresh from the browser again.
 
 ## A note on the passcode
 
@@ -153,16 +144,15 @@ are simplified, general information, not medical advice, and timing
 varies by person. Speak with a doctor before starting any fasting plan,
 especially if you have a medical condition or take medication.
 
-The "calories burnt" figures shown around the app are rough estimates,
-not a measurement. Workout calories come from either the built in
-workout library or whatever figure you enter yourself, so their accuracy
-depends on how closely your actual effort matches that estimate. The
-fasting-based estimate is a simple calculation (roughly your daily
-calorie goal spread evenly across 24 hours, applied to your elapsed
-fasting time) meant to give a general sense of energy drawn from stored
-reserves while not eating. It is not based on your individual metabolism,
-body composition, or activity level, and should be treated as a rough
-guide rather than a precise number.
+The "calories burnt" figures shown in History are a simple estimate, not
+a measurement. For any given day, it's whatever you came in under your
+daily goal by (so eating less than your goal counts the shortfall as
+burnt), plus the calories from any workouts you checked off that day.
+Workout calories come from either the built in workout library or
+whatever figure you enter yourself, so their accuracy depends on how
+closely your actual effort matches that estimate. None of this accounts
+for your individual metabolism, body composition, or activity level, so
+treat it as a rough guide rather than a precise number.
 
 ## Project structure
 
@@ -178,9 +168,6 @@ bc-tracker/
   icons/
     icon-192.png
     icon-512.png
-    icon-192-<color>.png
-    icon-512-<color>.png
-    (one pair per accent colour: blue, green, orange, pink, purple, teal)
   manifest.json
   service-worker.js
   README.md
