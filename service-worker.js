@@ -1,10 +1,11 @@
-const CACHE_NAME = "bc-tracker-v2";
+const CACHE_NAME = "bc-tracker-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/app.js",
   "./js/foods.js",
+  "./js/workouts.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"

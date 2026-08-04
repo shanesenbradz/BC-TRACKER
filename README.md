@@ -11,7 +11,15 @@ device using the browser's local storage.
 - Fasting timer with 10, 12, 16, 18, 24, 30 and 42 hour plans, a progress
   ring, and a stage by stage guide to what is commonly said to happen in
   the body during a fast (insulin drop, glycogen use, ketosis, autophagy)
+- An "End fast now" option with a confirm step, for finishing a fast
+  early or logging it as done without waiting for the plan length to pass
+- If you set a last meal time in the past, the app lets you know and
+  offers a one-tap way to switch to the current time instead. It still
+  lets you save the past time on purpose for retroactive logging
 - Next meal time calculated from your last meal and chosen fasting plan
+- A calories ring on the dashboard showing calories eaten against your
+  total budget (your daily goal plus calories burnt), with a breakdown of
+  workout calories burnt and a rough fasting-based burn estimate
 - A history dashboard showing past days: calories eaten versus goal,
   workouts completed, and fasts finished with planned versus actual length
 - Built in list of common foods with calories, plus the ability to add any
@@ -19,7 +27,10 @@ device using the browser's local storage.
   up in search from then on
 - Daily calorie log with a running total against a daily goal (defaults to
   1500 for women and 2000 for men, editable in Profile)
-- Custom workout list with a checklist you can tick off each day
+- Custom workout checklist you can tick off each day, with a built in
+  library of common workouts and their approximate calorie burn, plus the
+  ability to add your own workout and calorie figure. Checking a workout
+  off for the day counts its calories toward that day's calories burnt
 - Download a backup file of all your data at any time, and restore from
   that file later, including on a fresh browser with no profiles saved
 - Dark mode and light mode with a switchable accent colour
@@ -99,7 +110,7 @@ pushing to GitHub, open `service-worker.js` and bump the version number
 in this line:
 
 ```js
-const CACHE_NAME = "bc-tracker-v2";
+const CACHE_NAME = "bc-tracker-v3";
 ```
 
 Change it to `v3`, `v4`, and so on with each update you push. That tells
@@ -124,6 +135,17 @@ are simplified, general information, not medical advice, and timing
 varies by person. Speak with a doctor before starting any fasting plan,
 especially if you have a medical condition or take medication.
 
+The "calories burnt" figures shown around the app are rough estimates,
+not a measurement. Workout calories come from either the built in
+workout library or whatever figure you enter yourself, so their accuracy
+depends on how closely your actual effort matches that estimate. The
+fasting-based estimate is a simple calculation (roughly your daily
+calorie goal spread evenly across 24 hours, applied to your elapsed
+fasting time) meant to give a general sense of energy drawn from stored
+reserves while not eating. It is not based on your individual metabolism,
+body composition, or activity level, and should be treated as a rough
+guide rather than a precise number.
+
 ## Project structure
 
 ```
@@ -134,6 +156,7 @@ bc-tracker/
   js/
     app.js
     foods.js
+    workouts.js
   icons/
     icon-192.png
     icon-512.png

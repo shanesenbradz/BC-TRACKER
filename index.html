@@ -94,17 +94,46 @@
         </div>
       </div>
 
-      <div class="card-row">
-        <div class="card stat-card">
-          <div class="stat-label">Eaten today</div>
-          <div class="stat-value" id="dash-eaten">0</div>
-          <div class="stat-unit">calories</div>
+      <div class="card ring-card">
+        <div class="card-title" style="align-self:flex-start;">Calories</div>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 240 240" class="ring-svg">
+            <circle class="ring-track" cx="120" cy="120" r="104"></circle>
+            <circle class="cal-base-goal" id="cal-base-goal" cx="120" cy="120" r="104"></circle>
+            <circle class="cal-base-burnt" id="cal-base-burnt" cx="120" cy="120" r="104"></circle>
+            <circle class="cal-progress" id="cal-progress" cx="120" cy="120" r="104"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-elapsed" id="cal-remaining">0</div>
+            <div class="ring-label" id="cal-remaining-label">remaining</div>
+          </div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-label" id="dash-balance-label">Balance</div>
-          <div class="stat-value" id="dash-balance">0</div>
-          <div class="stat-unit" id="dash-balance-unit">calories</div>
+        <div class="cal-legend">
+          <span class="cal-legend-item"><i class="dot dot-accent"></i>Eaten</span>
+          <span class="cal-legend-item"><i class="dot dot-track"></i>Goal</span>
+          <span class="cal-legend-item"><i class="dot dot-green"></i>Burnt bonus</span>
         </div>
+        <div class="window-row">
+          <div class="window-item">
+            <div class="window-label">Eaten</div>
+            <div class="window-value" id="cal-eaten-val">0</div>
+          </div>
+          <div class="window-item">
+            <div class="window-label">Total budget</div>
+            <div class="window-value" id="cal-total-val">0</div>
+          </div>
+        </div>
+        <div class="window-row">
+          <div class="window-item">
+            <div class="window-label">Workout burnt</div>
+            <div class="window-value" id="cal-workout-val">0</div>
+          </div>
+          <div class="window-item">
+            <div class="window-label">Fasting estimate</div>
+            <div class="window-value" id="cal-fast-burn-val">0</div>
+          </div>
+        </div>
+        <div class="disclaimer">Total budget is your daily goal plus calories burnt. Burnt calories combine logged workouts with a rough estimate based on time spent fasting, not a precise measurement.</div>
       </div>
 
       <div class="card">
@@ -140,7 +169,22 @@
       <div class="card">
         <div class="card-title">Last meal</div>
         <input type="datetime-local" id="last-meal-input" class="input">
+        <div id="last-meal-warning" class="form-notice hidden"></div>
+        <button id="btn-use-now" class="link-back hidden" style="padding-bottom:12px;">Use current time instead</button>
         <button id="btn-set-last-meal" class="btn btn-secondary btn-block">Save last meal time</button>
+      </div>
+
+      <div class="card hidden" id="end-fast-card">
+        <div class="card-title">End fast</div>
+        <div id="end-fast-prompt">
+          <div class="stage-desc" style="margin-bottom:12px;">Finishing your fast now? Confirm below to log it and start a fresh timer.</div>
+          <button id="btn-end-fast" class="btn btn-secondary btn-block">End fast now</button>
+        </div>
+        <div id="end-fast-confirm" class="hidden">
+          <div class="stage-desc" style="margin-bottom:12px;">This logs your current fast to history and starts a new one from right now. Confirm?</div>
+          <button id="btn-end-fast-yes" class="btn btn-danger btn-block">Yes, end it now</button>
+          <button id="btn-end-fast-cancel" class="btn btn-secondary btn-block" style="margin-top:10px;">Cancel</button>
+        </div>
       </div>
 
       <div class="card">
@@ -205,8 +249,13 @@
     <section id="view-workouts" class="view">
       <div class="card">
         <div class="card-title">Add a workout</div>
+        <input type="text" id="workout-search" class="input" placeholder="Search known workouts">
+        <div id="workout-search-results" class="food-results"></div>
+
+        <div class="divider-label">Or add your own</div>
         <input type="text" id="workout-name-input" class="input" placeholder="Workout name">
         <input type="text" id="workout-detail-input" class="input" placeholder="Details, e.g. 3 sets of 12">
+        <input type="number" id="workout-calories-input" class="input" placeholder="Calories burnt (optional)" inputmode="numeric">
         <button id="btn-add-workout" class="btn btn-secondary btn-block">Add workout</button>
       </div>
 
@@ -214,6 +263,7 @@
         <div class="card-row-header">
           <div class="card-title">Checklist</div>
         </div>
+        <div class="stage-desc" style="margin-bottom:12px;">Check off a workout on the day you do it. If it has a calorie value, that day's burnt total picks it up automatically.</div>
         <div id="workout-list" class="workout-list"></div>
         <div id="workout-empty" class="empty-note">No workouts added yet.</div>
       </div>
@@ -323,6 +373,7 @@
 </div>
 
 <script src="js/foods.js"></script>
+<script src="js/workouts.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
