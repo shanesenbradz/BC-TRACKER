@@ -17,6 +17,14 @@ const FASTING_STAGES = [
 
 const RING_CIRCUMFERENCE = 653.5;
 
+function setRingArc(el, startFraction, lengthFraction) {
+  if (!el) return;
+  const start = RING_CIRCUMFERENCE * startFraction;
+  const len = RING_CIRCUMFERENCE * Math.max(lengthFraction, 0);
+  el.style.strokeDasharray = len.toFixed(2) + " " + RING_CIRCUMFERENCE.toFixed(2);
+  el.style.strokeDashoffset = (-start).toFixed(2);
+}
+
 /* ---------------------------------------------------------
    Small helpers
 --------------------------------------------------------- */
@@ -99,6 +107,7 @@ function defaultData(sex) {
     customFoods: [],
     fastHistory: [],
     workouts: [],
+    customWorkoutsLibrary: [],
     theme: "dark",
     accent: "blue"
   };
@@ -114,7 +123,8 @@ function getData(userId) {
     foodLog: parsed.foodLog || [],
     customFoods: parsed.customFoods || [],
     fastHistory: parsed.fastHistory || [],
-    workouts: parsed.workouts || []
+    workouts: parsed.workouts || [],
+    customWorkoutsLibrary: parsed.customWorkoutsLibrary || []
   });
 }
 function persist() {
@@ -235,6 +245,7 @@ function loadApp(user) {
   tickTimer = setInterval(() => {
     renderRing();
     renderStageTimeline();
+    renderCalRing();
   }, 20000);
 }
 
@@ -353,16 +364,57 @@ function todayCalories() {
   return currentData.foodLog.filter(f => f.date === t).reduce((sum, f) => sum + f.calories, 0);
 }
 
-function renderDashboardStats() {
-  const eaten = todayCalories();
-  const goal = currentData.dailyGoal;
-  const balance = goal - eaten;
+function workoutCaloriesToday() {
+  const t = todayStr();
+  return currentData.workouts
+    .filter(w => w.doneDates.includes(t))
+    .reduce((sum, w) => sum + (w.calories || 0), 0);
+}
 
-  $("#dash-eaten").textContent = eaten;
-  $("#dash-balance-label").textContent = balance >= 0 ? "Remaining" : "Over goal";
-  $("#dash-balance").textContent = Math.abs(balance);
-
+function fastingBurnEstimate() {
   const elapsed = currentElapsedHours();
+  if (elapsed === null || elapsed <= 0) return 0;
+  return (elapsed / 24) * currentData.dailyGoal;
+}
+
+function computeBurnToday() {
+  const workout = workoutCaloriesToday();
+  const fasting = fastingBurnEstimate();
+  return { workout, fasting, total: workout + fasting };
+}
+
+function renderCalRing() {
+  const eaten = todayCalories();
+  const burn = computeBurnToday();
+  const burnt = Math.round(burn.total);
+  const goal = currentData.dailyGoal;
+  const total = goal + burnt;
+  const remaining = total - eaten;
+
+  $("#cal-eaten-val").textContent = eaten;
+  $("#cal-total-val").textContent = total;
+  $("#cal-workout-val").textContent = Math.round(burn.workout);
+  $("#cal-fast-burn-val").textContent = Math.round(burn.fasting);
+
+  const remainingEl = $("#cal-remaining");
+  remainingEl.textContent = Math.abs(remaining);
+  $("#cal-remaining-label").textContent = remaining >= 0 ? "remaining" : "over budget";
+  remainingEl.style.color = remaining < 0 ? "var(--red)" : "var(--text-primary)";
+
+  const goalFraction = total > 0 ? Math.min(goal / total, 1) : 1;
+  const burntFraction = total > 0 ? Math.max(1 - goalFraction, 0) : 0;
+  setRingArc($("#cal-base-goal"), 0, goalFraction);
+  setRingArc($("#cal-base-burnt"), goalFraction, burntFraction);
+
+  const eatenFraction = total > 0 ? Math.min(eaten / total, 1) : 0;
+  const progress = $("#cal-progress");
+  progress.classList.toggle("over", eaten > total);
+  setRingArc(progress, 0, eatenFraction);
+}
+
+function renderDashboardStats() {
+  renderCalRing();
+
   if (currentData.lastMealISO) {
     const next = new Date(new Date(currentData.lastMealISO).getTime() + currentData.fastPlan * 3600000);
     $("#dash-next-meal").textContent = formatMealTime(next);
@@ -415,6 +467,9 @@ function renderFastingPanel() {
   }
 
   renderStageTimeline();
+  updateEndFastVisibility();
+  $("#last-meal-warning").classList.add("hidden");
+  $("#btn-use-now").classList.add("hidden");
 }
 
 function renderStageTimeline() {
@@ -460,12 +515,7 @@ function setFastPlan(hours) {
   renderDashboardStats();
 }
 
-function saveLastMeal() {
-  const val = $("#last-meal-input").value;
-  if (!val) return;
-  const date = new Date(val);
-  if (isNaN(date.getTime())) return;
-
+function applyNewLastMeal(date) {
   if (currentData.lastMealISO) {
     const prevStart = new Date(currentData.lastMealISO);
     const actualHours = (date.getTime() - prevStart.getTime()) / 3600000;
@@ -487,6 +537,49 @@ function saveLastMeal() {
   renderRing();
   renderDashboardStats();
   renderHistory();
+}
+
+function saveLastMeal() {
+  const val = $("#last-meal-input").value;
+  if (!val) return;
+  const date = new Date(val);
+  if (isNaN(date.getTime())) return;
+  applyNewLastMeal(date);
+  $("#last-meal-warning").classList.add("hidden");
+  $("#btn-use-now").classList.add("hidden");
+}
+
+function checkPastMealTime() {
+  const val = $("#last-meal-input").value;
+  const warn = $("#last-meal-warning");
+  const useNowBtn = $("#btn-use-now");
+  if (!val) { warn.classList.add("hidden"); useNowBtn.classList.add("hidden"); return; }
+  const date = new Date(val);
+  if (isNaN(date.getTime())) { warn.classList.add("hidden"); useNowBtn.classList.add("hidden"); return; }
+
+  const isPast = (Date.now() - date.getTime()) > 120000;
+  warn.classList.toggle("hidden", !isPast);
+  useNowBtn.classList.toggle("hidden", !isPast);
+  if (isPast) {
+    warn.textContent = "That time is in the past (" + formatMealTime(date) + "). If you're logging this retroactively that's fine, just tap Save. Otherwise use the current time instead.";
+  }
+}
+
+function useCurrentTimeForMeal() {
+  $("#last-meal-input").value = toLocalInputValue(new Date());
+  saveLastMeal();
+}
+
+function updateEndFastVisibility() {
+  const card = $("#end-fast-card");
+  card.classList.toggle("hidden", !currentData.lastMealISO);
+  $("#end-fast-prompt").classList.remove("hidden");
+  $("#end-fast-confirm").classList.add("hidden");
+}
+
+function endFastNow() {
+  applyNewLastMeal(new Date());
+  updateEndFastVisibility();
 }
 
 /* ---------------------------------------------------------
@@ -630,6 +723,12 @@ function buildWorkoutRow(w, done, showRemove) {
     detailEl.textContent = w.detail;
     textWrap.appendChild(detailEl);
   }
+  if (w.calories) {
+    const calEl = document.createElement("div");
+    calEl.className = "workout-cal-badge";
+    calEl.textContent = "\u2248 " + w.calories + " cal burnt";
+    textWrap.appendChild(calEl);
+  }
 
   row.appendChild(check);
   row.appendChild(textWrap);
@@ -657,18 +756,73 @@ function renderWorkouts() {
   });
 }
 
+function renderWorkoutSearchResults(query) {
+  const wrap = $("#workout-search-results");
+  wrap.innerHTML = "";
+  if (!query) return;
+  const q = query.toLowerCase();
+  const combined = currentData.customWorkoutsLibrary.concat(KNOWN_WORKOUTS);
+  const seen = new Set();
+  const matches = [];
+  combined.forEach(w => {
+    const key = w.name.toLowerCase();
+    if (seen.has(key) || !key.includes(q)) return;
+    seen.add(key);
+    matches.push(w);
+  });
+  matches.slice(0, 8).forEach(w => {
+    const btn = document.createElement("button");
+    btn.className = "food-result-row";
+    const nameEl = document.createElement("span");
+    nameEl.className = "food-result-name";
+    nameEl.textContent = w.name;
+    const calEl = document.createElement("span");
+    calEl.className = "food-result-cal";
+    calEl.textContent = w.calories + " cal";
+    btn.appendChild(nameEl);
+    btn.appendChild(calEl);
+    btn.addEventListener("click", () => {
+      addWorkoutEntry(w.name, "", w.calories);
+      $("#workout-search").value = "";
+      wrap.innerHTML = "";
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function upsertCustomWorkout(name, calories) {
+  const idx = currentData.customWorkoutsLibrary.findIndex(w => w.name.toLowerCase() === name.toLowerCase());
+  if (idx >= 0) currentData.customWorkoutsLibrary[idx].calories = Math.round(Number(calories));
+  else currentData.customWorkoutsLibrary.unshift({ id: uid("cw"), name: name, calories: Math.round(Number(calories)) });
+}
+
+function addWorkoutEntry(name, detail, calories) {
+  currentData.workouts.push({
+    id: uid("w"),
+    name: name,
+    detail: detail || "",
+    calories: Math.round(Number(calories)) || 0,
+    doneDates: []
+  });
+  persist();
+  renderWorkouts();
+  renderDashboardWorkouts();
+  renderCalRing();
+}
+
 function addWorkout() {
   const nameInput = $("#workout-name-input");
   const detailInput = $("#workout-detail-input");
+  const calInput = $("#workout-calories-input");
   const name = nameInput.value.trim();
   const detail = detailInput.value.trim();
+  const cal = Number(calInput.value) || 0;
   if (!name) return;
-  currentData.workouts.push({ id: uid("w"), name, detail, doneDates: [] });
-  persist();
+  if (cal > 0) upsertCustomWorkout(name, cal);
+  addWorkoutEntry(name, detail, cal);
   nameInput.value = "";
   detailInput.value = "";
-  renderWorkouts();
-  renderDashboardWorkouts();
+  calInput.value = "";
 }
 
 function toggleWorkout(id) {
@@ -681,6 +835,7 @@ function toggleWorkout(id) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
+  renderCalRing();
 }
 
 function removeWorkout(id) {
@@ -688,6 +843,7 @@ function removeWorkout(id) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
+  renderCalRing();
 }
 
 /* ---------------------------------------------------------
@@ -991,10 +1147,24 @@ document.addEventListener("DOMContentLoaded", () => {
     setFastPlan(Number(btn.dataset.value));
   });
   $("#btn-set-last-meal").addEventListener("click", saveLastMeal);
+  $("#last-meal-input").addEventListener("input", checkPastMealTime);
+  $("#last-meal-input").addEventListener("change", checkPastMealTime);
+  $("#btn-use-now").addEventListener("click", useCurrentTimeForMeal);
+
+  $("#btn-end-fast").addEventListener("click", () => {
+    $("#end-fast-prompt").classList.add("hidden");
+    $("#end-fast-confirm").classList.remove("hidden");
+  });
+  $("#btn-end-fast-cancel").addEventListener("click", () => {
+    $("#end-fast-confirm").classList.add("hidden");
+    $("#end-fast-prompt").classList.remove("hidden");
+  });
+  $("#btn-end-fast-yes").addEventListener("click", endFastNow);
 
   $("#food-search").addEventListener("input", e => renderFoodSearchResults(e.target.value.trim()));
   $("#btn-add-custom-food").addEventListener("click", addCustomFood);
 
+  $("#workout-search").addEventListener("input", e => renderWorkoutSearchResults(e.target.value.trim()));
   $("#btn-add-workout").addEventListener("click", addWorkout);
 
   $("#profile-sex").addEventListener("click", e => {
