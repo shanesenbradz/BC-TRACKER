@@ -31,6 +31,9 @@ html, body {
   --purple: #bf5af2;
   --teal: #64d2ff;
   --red: #ff453a;
+  --yellow: #ffd60a;
+  --indigo: #5e5ce6;
+  --mint: #00c7be;
 }
 
 /* ---- Theme: dark (default) ---- */
@@ -70,6 +73,10 @@ html[data-accent="orange"] { --accent: var(--orange); }
 html[data-accent="pink"]   { --accent: var(--pink); }
 html[data-accent="purple"] { --accent: var(--purple); }
 html[data-accent="teal"]   { --accent: var(--teal); }
+html[data-accent="red"]    { --accent: var(--red); }
+html[data-accent="yellow"] { --accent: var(--yellow); }
+html[data-accent="indigo"] { --accent: var(--indigo); }
+html[data-accent="mint"]   { --accent: var(--mint); }
 
 .hidden { display: none !important; }
 
@@ -484,48 +491,6 @@ html[data-accent="teal"]   { --accent: var(--teal); }
 
 .ring-tick { fill: var(--bg); stroke: var(--track); stroke-width: 1.5; }
 
-/* Calories ring (dashboard) */
-.cal-base-goal {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 14;
-  opacity: 0.22;
-}
-.cal-base-burnt {
-  fill: none;
-  stroke: var(--green);
-  stroke-width: 14;
-  opacity: 0.32;
-}
-.cal-progress {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 14;
-  stroke-linecap: round;
-  transition: stroke-dasharray 0.4s ease, stroke-dashoffset 0.4s ease;
-}
-.cal-progress.over { stroke: var(--red); }
-
-.cal-legend {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin: 10px 0 4px;
-  flex-wrap: wrap;
-}
-.cal-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.dot-accent { background: var(--accent); }
-.dot-track { background: var(--track); }
-.dot-green { background: var(--green); }
-
 /* Past-date heads up notice, distinct from an error */
 .form-notice {
   color: var(--orange);
@@ -694,7 +659,7 @@ html[data-accent="teal"]   { --accent: var(--teal); }
 /* ---------------------------------------------------------
    Accent picker
 --------------------------------------------------------- */
-.accent-picker { display: flex; gap: 12px; padding-top: 4px; }
+.accent-picker { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px; }
 .accent-swatch {
   width: 34px;
   height: 34px;
