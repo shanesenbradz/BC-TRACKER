@@ -17,14 +17,6 @@ const FASTING_STAGES = [
 
 const RING_CIRCUMFERENCE = 653.5;
 
-function setRingArc(el, startFraction, lengthFraction) {
-  if (!el) return;
-  const start = RING_CIRCUMFERENCE * startFraction;
-  const len = RING_CIRCUMFERENCE * Math.max(lengthFraction, 0);
-  el.style.strokeDasharray = len.toFixed(2) + " " + RING_CIRCUMFERENCE.toFixed(2);
-  el.style.strokeDashoffset = (-start).toFixed(2);
-}
-
 /* ---------------------------------------------------------
    Small helpers
 --------------------------------------------------------- */
@@ -234,7 +226,6 @@ function loadApp(user) {
 
   document.documentElement.setAttribute("data-theme", currentData.theme || "dark");
   document.documentElement.setAttribute("data-accent", currentData.accent || "blue");
-  updateAppIcon(currentData.accent || "blue");
 
   $("#screen-auth").classList.remove("active");
   $("#app").classList.add("active");
@@ -246,7 +237,6 @@ function loadApp(user) {
   tickTimer = setInterval(() => {
     renderRing();
     renderStageTimeline();
-    renderCalRing();
   }, 20000);
 }
 
@@ -360,61 +350,30 @@ function renderRingTicks(planHours) {
   });
 }
 
-function todayCalories() {
-  const t = todayStr();
-  return currentData.foodLog.filter(f => f.date === t).reduce((sum, f) => sum + f.calories, 0);
+function caloriesEatenOnDate(dateStr) {
+  return currentData.foodLog.filter(f => f.date === dateStr).reduce((sum, f) => sum + f.calories, 0);
 }
 
-function workoutCaloriesToday() {
-  const t = todayStr();
+function workoutCaloriesOnDate(dateStr) {
   return currentData.workouts
-    .filter(w => w.doneDates.includes(t))
+    .filter(w => w.doneDates.includes(dateStr))
     .reduce((sum, w) => sum + (w.calories || 0), 0);
 }
 
-function fastingBurnEstimate() {
-  const elapsed = currentElapsedHours();
-  if (elapsed === null || elapsed <= 0) return 0;
-  return (elapsed / 24) * currentData.dailyGoal;
+function caloriesBurntOnDate(dateStr) {
+  const eaten = caloriesEatenOnDate(dateStr);
+  const notEaten = Math.max(currentData.dailyGoal - eaten, 0);
+  return notEaten + workoutCaloriesOnDate(dateStr);
 }
 
-function computeBurnToday() {
-  const workout = workoutCaloriesToday();
-  const fasting = fastingBurnEstimate();
-  return { workout, fasting, total: workout + fasting };
-}
-
-function renderCalRing() {
-  const eaten = todayCalories();
-  const burn = computeBurnToday();
-  const burnt = Math.round(burn.total);
-  const goal = currentData.dailyGoal;
-  const total = goal + burnt;
-  const remaining = total - eaten;
-
-  $("#cal-eaten-val").textContent = eaten;
-  $("#cal-total-val").textContent = total;
-  $("#cal-workout-val").textContent = Math.round(burn.workout);
-  $("#cal-fast-burn-val").textContent = Math.round(burn.fasting);
-
-  const remainingEl = $("#cal-remaining");
-  remainingEl.textContent = Math.abs(remaining);
-  $("#cal-remaining-label").textContent = remaining >= 0 ? "remaining" : "over budget";
-  remainingEl.style.color = remaining < 0 ? "var(--red)" : "var(--text-primary)";
-
-  const goalFraction = total > 0 ? Math.min(goal / total, 1) : 1;
-  const burntFraction = total > 0 ? Math.max(1 - goalFraction, 0) : 0;
-  setRingArc($("#cal-base-goal"), 0, goalFraction);
-  setRingArc($("#cal-base-burnt"), goalFraction, burntFraction);
-
-  const eatenFraction = total > 0 ? Math.min(eaten / total, 1) : 0;
-  const progress = $("#cal-progress");
-  progress.classList.toggle("over", eaten > total);
-  setRingArc(progress, 0, eatenFraction);
+function todayCalories() {
+  return caloriesEatenOnDate(todayStr());
 }
 
 function renderDashboardStats() {
-  renderCalRing();
+  const eaten = todayCalories();
+  $("#dash-eaten").textContent = eaten;
+  $("#dash-goal").textContent = currentData.dailyGoal;
 
   if (currentData.lastMealISO) {
     const next = new Date(new Date(currentData.lastMealISO).getTime() + currentData.fastPlan * 3600000);
@@ -578,8 +537,29 @@ function updateEndFastVisibility() {
   $("#end-fast-confirm").classList.add("hidden");
 }
 
-function endFastNow() {
-  applyNewLastMeal(new Date());
+function stopFasting() {
+  if (currentData.lastMealISO) {
+    const prevStart = new Date(currentData.lastMealISO);
+    const now = new Date();
+    const actualHours = (now.getTime() - prevStart.getTime()) / 3600000;
+    if (actualHours > 0.05) {
+      currentData.fastHistory.unshift({
+        id: uid("fh"),
+        startISO: currentData.lastMealISO,
+        endISO: now.toISOString(),
+        plannedHours: currentData.fastPlan,
+        actualHours: actualHours
+      });
+      if (currentData.fastHistory.length > 200) currentData.fastHistory.length = 200;
+    }
+  }
+
+  currentData.lastMealISO = null;
+  persist();
+  renderFastingPanel();
+  renderRing();
+  renderDashboardStats();
+  renderHistory();
   updateEndFastVisibility();
 }
 
@@ -637,6 +617,7 @@ function addFoodEntry(name, calories) {
   persist();
   renderFood();
   renderDashboardStats();
+  renderHistory();
 }
 
 function upsertCustomFood(name, calories) {
@@ -662,6 +643,7 @@ function removeFoodEntry(id) {
   persist();
   renderFood();
   renderDashboardStats();
+  renderHistory();
 }
 
 function renderFoodLogList() {
@@ -808,7 +790,7 @@ function addWorkoutEntry(name, detail, calories) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
-  renderCalRing();
+  renderHistory();
 }
 
 function addWorkout() {
@@ -836,7 +818,7 @@ function toggleWorkout(id) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
-  renderCalRing();
+  renderHistory();
 }
 
 function removeWorkout(id) {
@@ -844,7 +826,7 @@ function removeWorkout(id) {
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
-  renderCalRing();
+  renderHistory();
 }
 
 /* ---------------------------------------------------------
@@ -908,6 +890,19 @@ function renderHistory() {
       row.appendChild(label);
       row.appendChild(val);
       card.appendChild(row);
+    }
+
+    const burnt = caloriesBurntOnDate(d);
+    if (burnt > 0) {
+      const burntRow = document.createElement("div");
+      burntRow.className = "history-row";
+      const label = document.createElement("span");
+      label.textContent = "Calories burnt";
+      const val = document.createElement("strong");
+      val.textContent = String(burnt);
+      burntRow.appendChild(label);
+      burntRow.appendChild(val);
+      card.appendChild(burntRow);
     }
 
     if (entry.workoutsDone.length > 0) {
@@ -992,7 +987,6 @@ function importBackupIntoCurrentProfile(file) {
       persist();
       document.documentElement.setAttribute("data-theme", currentData.theme || "dark");
       document.documentElement.setAttribute("data-accent", currentData.accent || "blue");
-      updateAppIcon(currentData.accent || "blue");
       renderAll();
     } catch (e) {
       errEl.textContent = "Could not read that file.";
@@ -1049,6 +1043,7 @@ function saveProfile() {
   renderGreeting();
   renderDashboardStats();
   renderFood();
+  renderHistory();
 }
 
 function calcBmi() {
@@ -1079,55 +1074,7 @@ function calcBmi() {
   $("#bmi-result").classList.remove("hidden");
 }
 
-const ACCENTS = ["blue", "green", "orange", "pink", "purple", "teal"];
-const ACCENT_HEX = {
-  blue: "#0a84ff",
-  green: "#30d158",
-  orange: "#ff9f0a",
-  pink: "#ff375f",
-  purple: "#bf5af2",
-  teal: "#64d2ff"
-};
-
-let manifestBlobUrl = null;
-
-function updateAppIcon(color) {
-  if (!ACCENT_HEX[color]) color = "blue";
-
-  const iconPath192 = "icons/icon-192-" + color + ".png";
-  const iconPath512 = "icons/icon-512-" + color + ".png";
-
-  const appleIcon = $("#apple-touch-icon-link");
-  if (appleIcon) appleIcon.setAttribute("href", iconPath192);
-
-  const themeMeta = $("#meta-theme-color");
-  if (themeMeta) themeMeta.setAttribute("content", ACCENT_HEX[color]);
-
-  const manifest = {
-    name: "B.C Tracker",
-    short_name: "B.C Tracker",
-    description: "Fasting, calorie and workout tracker",
-    start_url: "./index.html",
-    scope: "./",
-    display: "standalone",
-    background_color: "#000000",
-    theme_color: ACCENT_HEX[color],
-    orientation: "portrait",
-    icons: [
-      { src: iconPath192, sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: iconPath192, sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: iconPath512, sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: iconPath512, sizes: "512x512", type: "image/png", purpose: "maskable" }
-    ]
-  };
-
-  const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
-  const newUrl = URL.createObjectURL(blob);
-  const manifestLink = $("#manifest-link");
-  if (manifestLink) manifestLink.setAttribute("href", newUrl);
-  if (manifestBlobUrl) URL.revokeObjectURL(manifestBlobUrl);
-  manifestBlobUrl = newUrl;
-}
+const ACCENTS = ["blue", "green", "teal", "mint", "indigo", "purple", "pink", "red", "orange", "yellow"];
 
 function renderAccentPicker() {
   const wrap = $("#accent-picker");
@@ -1140,10 +1087,8 @@ function renderAccentPicker() {
       currentData.accent = color;
       document.documentElement.setAttribute("data-accent", color);
       persist();
-      updateAppIcon(color);
       renderAccentPicker();
       renderRing();
-      renderCalRing();
     });
     wrap.appendChild(btn);
   });
@@ -1212,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#end-fast-confirm").classList.add("hidden");
     $("#end-fast-prompt").classList.remove("hidden");
   });
-  $("#btn-end-fast-yes").addEventListener("click", endFastNow);
+  $("#btn-end-fast-yes").addEventListener("click", stopFasting);
 
   $("#food-search").addEventListener("input", e => renderFoodSearchResults(e.target.value.trim()));
   $("#btn-add-custom-food").addEventListener("click", addCustomFood);
