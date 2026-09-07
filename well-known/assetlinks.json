@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.shanesenbradz.bctracker",
+    "sha256_cert_fingerprints": [
+      "E5:28:79:94:8A:7B:94:1C:4C:0B:25:FE:2E:9C:1B:F3:13:D9:3C:57:DF:86:4A:D2:C4:6A:E6:D7:A2:E6:0A:21"
+    ]
+  }
+}]
