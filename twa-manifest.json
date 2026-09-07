@@ -1,0 +1,39 @@
+{
+  "packageId": "com.shanesenbradz.bctracker",
+  "host": "shanesenbradz.github.io",
+  "name": "B.C Tracker",
+  "launcherName": "B.C Tracker",
+  "display": "standalone",
+  "themeColor": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#000000",
+  "enableNotifications": false,
+  "startUrl": "/BC-TRACKER/index.html",
+  "iconUrl": "https://shanesenbradz.github.io/BC-TRACKER/icons/icon-512.png",
+  "maskableIconUrl": "https://shanesenbradz.github.io/BC-TRACKER/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "bctracker"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://shanesenbradz.github.io/BC-TRACKER/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://shanesenbradz.github.io/BC-TRACKER/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": []
+}
