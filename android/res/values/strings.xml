@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">B.C Tracker</string>
+    <string name="widget_name">Fasting progress</string>
+    <string name="widget_desc">Your fasting stage and time left at a glance</string>
+</resources>

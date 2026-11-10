@@ -1,4 +1,4 @@
-const CACHE_NAME = "bc-tracker-v5";
+const CACHE_NAME = "bc-tracker-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,9 @@ const ASSETS = [
   "./js/app.js",
   "./js/foods.js",
   "./js/workouts.js",
+  "./js/motion.js",
+  "./js/wallpaper.js",
+  "./js/alerts.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
@@ -37,6 +40,17 @@ self.addEventListener("fetch", event => {
           return response;
         })
         .catch(() => cached);
+    })
+  );
+});
+
+/* Tapping a stage alert opens (or focuses) the app */
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      return self.clients.openWindow ? self.clients.openWindow("./index.html") : null;
     })
   );
 });

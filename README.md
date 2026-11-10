@@ -4,6 +4,33 @@ A fasting, calorie and workout tracker that runs entirely in the browser.
 No server, no build step, no external accounts. All data is saved on the
 device using the browser's local storage.
 
+## Android app
+
+Download the APK on your phone: [BC-Tracker.apk](https://github.com/shanesenbradz/BC-TRACKER/releases/latest/download/BC-Tracker.apk)
+(or open the [latest release](https://github.com/shanesenbradz/BC-TRACKER/releases/latest)), then open it.
+Android asks you to allow installs from your browser or file manager the
+first time. Needs Android 7.0 or newer. If an older B.C Tracker app is on
+the phone, uninstall it first.
+
+The Android app is the same tracker with a few extras that only an
+installed app can do:
+
+- **Stage alerts.** A notification as you reach each stage of your fast,
+  and when your plan is complete. They arrive even when the app is closed,
+  and are booked again after the phone restarts. Choose which stages alert
+  you on the Fasting tab, and send yourself a test.
+- **Home screen widget.** A battery-style ring that fills up as you fast,
+  with a live countdown of the time left and your current stage. Make it
+  wider to also see a battery bar with a tick for each stage and when the
+  next stage starts. Add it from Profile, or long-press your home screen
+  and pick B.C Tracker from Widgets.
+- Backups save straight to your files, and the back button steps back
+  through the app before leaving it.
+
+On Android 14 and newer, alerts can arrive a few minutes late unless you
+allow exact timing. The Stage alerts card shows a link to that setting
+when it is off.
+
 ## Features
 
 - Profile creation with a passcode, multiple profiles supported on one device
@@ -37,6 +64,16 @@ device using the browser's local storage.
 - Download a backup file of all your data at any time, and restore from
   that file later, including on a fresh browser with no profiles saved
 - Dark mode and light mode with a wide choice of accent colours
+- Wallpaper: set any photo (including iPhone HEIC photos) behind the app,
+  with visibility, blur and fit controls and optional frosted cards. Each
+  profile keeps its own wallpaper. The photo stays on the device and is
+  not part of the backup file
+- Stage alerts: a notification at each fasting stage and when your plan is
+  done. In a browser they arrive only while the app is open
+- Spring animations throughout: tabs slide in from the side you tapped,
+  cards settle in, the tab bar highlight glides between tabs, and taps,
+  checkmarks and totals bounce. Turns itself down if your device is set to
+  reduce motion
 - Installable to a phone home screen as a standalone app
 - Extra settings and customisation live on the Profile page rather than
   cluttering the main screens, scroll down there to find them
@@ -115,10 +152,10 @@ pushing to GitHub, open `service-worker.js` and bump the version number
 in this line:
 
 ```js
-const CACHE_NAME = "bc-tracker-v5";
+const CACHE_NAME = "bc-tracker-v6";
 ```
 
-Change it to `v6`, `v7`, and so on with each update you push. That tells
+Change it to `v7`, `v8`, and so on with each update you push. That tells
 installed copies of the app to fetch the new files instead of using the
 old cached ones. Without this step, people who already installed the
 app to their home screen may keep seeing the old version for a while.
@@ -154,6 +191,23 @@ closely your actual effort matches that estimate. None of this accounts
 for your individual metabolism, body composition, or activity level, so
 treat it as a rough guide rather than a precise number.
 
+## Building the APK
+
+The Android app wraps the same web files. The small native part
+(notifications, widget, file saving) lives in `android/src`. It builds
+without Android Studio or Gradle:
+
+1. Put the tools listed at the top of `android/build-apk.sh` in
+   `android/tools/`.
+2. Put your signing key `bctracker-release.jks` in `android/`. Never
+   commit it, and keep a copy somewhere safe. Updates must be signed with
+   the same key or phones will refuse to install them.
+3. Run `KS_PASS=yourpassword ./android/build-apk.sh`.
+
+For a new release, raise `versionCode` and `versionName` in
+`android/version.properties`, rebuild, update `.github/release-notes.md`
+and push. The Release workflow publishes the APK on GitHub.
+
 ## Project structure
 
 ```
@@ -162,13 +216,21 @@ bc-tracker/
   css/
     style.css
   js/
-    app.js
+    app.js          tracker logic
+    motion.js       animations, haptics, toasts
+    wallpaper.js    background photo
+    alerts.js       stage alerts and the Android bridge
     foods.js
     workouts.js
   icons/
-    icon-192.png
-    icon-512.png
   manifest.json
   service-worker.js
+  BC-Tracker.apk    the Android app
+  android/
+    AndroidManifest.xml
+    src/            WebView, alarms, notifications, widget
+    res/            icons, widget layouts
+    build-apk.sh
+    version.properties
   README.md
 ```

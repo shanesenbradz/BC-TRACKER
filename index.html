@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div class="bg-photo" id="bg-photo" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <!-- AUTH -->
 <div id="screen-auth" class="screen active">
@@ -172,6 +174,26 @@
         </div>
       </div>
 
+      <div class="card" id="alerts-card">
+        <div class="card-row-header">
+          <div class="card-title" style="margin-bottom:0;">Stage alerts</div>
+          <button type="button" class="switch" id="alerts-master" role="switch" aria-checked="false" aria-label="Stage alerts"></button>
+        </div>
+        <div class="stage-desc" id="alerts-status" style="margin:8px 0 12px;">Get a notification as you reach each stage of your fast.</div>
+        <div id="alerts-body">
+          <div class="alert-chips" id="alert-chips"></div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Keep alerting past my plan</div>
+              <div class="setting-sub">Useful if you sometimes fast longer than planned</div>
+            </div>
+            <button type="button" class="switch" id="alerts-past" role="switch" aria-checked="true" aria-label="Keep alerting past my plan"></button>
+          </div>
+          <button id="btn-test-alert" class="btn btn-secondary btn-block" style="margin-top:12px;">Send a test alert</button>
+          <button id="btn-exact-alarms" class="link-back hidden" style="padding:12px 0 0;">Allow exact timing for alerts</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-title">What happens during a fast</div>
         <div id="stage-timeline" class="stage-timeline"></div>
@@ -297,6 +319,47 @@
         <div class="card-title">Appearance</div>
         <div class="field-label">Accent colour</div>
         <div id="accent-picker" class="accent-picker"></div>
+
+        <div class="field-label" style="margin-top:18px;">Wallpaper</div>
+        <div class="wall-row">
+          <button type="button" class="wall-thumb" id="wall-thumb" aria-label="Choose wallpaper">
+            <svg viewBox="0 0 24 24" class="wall-thumb-icon"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><circle cx="9" cy="10" r="1.8"></circle><path d="m21 16-5-5-8 8"></path></svg>
+          </button>
+          <div class="wall-actions">
+            <button id="btn-wall-pick" class="btn btn-secondary btn-small">Choose photo</button>
+            <button id="btn-wall-remove" class="btn btn-danger btn-small hidden">Remove</button>
+          </div>
+        </div>
+        <input type="file" id="wall-file-input" accept="image/*,.heic,.heif" class="hidden">
+        <div id="wall-controls" class="hidden">
+          <div class="slider-row">
+            <div class="sl-head"><span>Visibility</span><span class="sl-val" id="wall-op-val">35%</span></div>
+            <input type="range" id="wall-op" min="10" max="100" step="1" value="35">
+          </div>
+          <div class="slider-row">
+            <div class="sl-head"><span>Blur</span><span class="sl-val" id="wall-blur-val">0</span></div>
+            <input type="range" id="wall-blur" min="0" max="24" step="1" value="0">
+          </div>
+          <label class="field-label">Photo fit</label>
+          <div class="segmented" id="wall-fit">
+            <button type="button" class="seg-btn active" data-value="cover">Fill screen</button>
+            <button type="button" class="seg-btn" data-value="contain">Whole photo</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">Frosted cards</div>
+              <div class="setting-sub">Let the wallpaper show softly through cards</div>
+            </div>
+            <button type="button" class="switch" id="wall-frost" role="switch" aria-checked="true" aria-label="Frosted cards"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="widget-card">
+        <div class="card-title">Home screen widget</div>
+        <div class="stage-desc" style="margin-bottom:12px;">See your fasting stage and time left at a glance, without opening the app.</div>
+        <button id="btn-add-widget" class="btn btn-secondary btn-block">Add widget to home screen</button>
+        <div class="disclaimer" id="widget-manual">Or long-press your home screen, tap Widgets, and find B.C Tracker.</div>
       </div>
 
       <div class="card">
@@ -316,6 +379,7 @@
   </main>
 
   <nav class="tabbar" id="tabbar">
+    <span class="tab-pill" id="tab-pill" aria-hidden="true"></span>
     <button class="tab-btn active" data-view="dashboard">
       <svg viewBox="0 0 24 24" class="tab-icon"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5v4.5l3 2"></path></svg>
       <span>Today</span>
@@ -345,6 +409,9 @@
 
 <script src="js/foods.js"></script>
 <script src="js/workouts.js"></script>
+<script src="js/motion.js"></script>
+<script src="js/wallpaper.js"></script>
+<script src="js/alerts.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

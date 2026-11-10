@@ -101,7 +101,9 @@ function defaultData(sex) {
     workouts: [],
     customWorkoutsLibrary: [],
     theme: "dark",
-    accent: "blue"
+    accent: "blue",
+    notify: Alerts.defaults(),
+    wallpaper: Object.assign({}, Wallpaper.DEFAULTS)
   };
 }
 
@@ -120,7 +122,9 @@ function getData(userId) {
   });
 }
 function persist() {
-  if (currentUser) localStorage.setItem(dataKey(currentUser.id), JSON.stringify(currentData));
+  if (!currentUser) return;
+  localStorage.setItem(dataKey(currentUser.id), JSON.stringify(currentData));
+  Alerts.sync(currentUser, currentData);
 }
 
 /* ---------------------------------------------------------
@@ -211,6 +215,9 @@ function logout() {
   currentUser = null;
   currentData = null;
   if (tickTimer) clearInterval(tickTimer);
+  Wallpaper.unload();
+  Alerts.syncNow(null, null);
+  applyChrome("dark");
   $("#app").classList.remove("active");
   $("#screen-auth").classList.add("active");
   showAuthPanel("auth-welcome");
@@ -229,15 +236,40 @@ function loadApp(user) {
 
   $("#screen-auth").classList.remove("active");
   $("#app").classList.add("active");
+  applyChrome(currentData.theme);
+  Wallpaper.load(user.id, currentData.wallpaper);
 
   renderAll();
-  setActiveView("dashboard");
+  setActiveView("dashboard", true);
+  requestAnimationFrame(() => Motion.movePill(true));
+  Alerts.syncNow(currentUser, currentData);
+  maybeAskForAlerts();
 
   if (tickTimer) clearInterval(tickTimer);
   tickTimer = setInterval(() => {
     renderRing();
     renderStageTimeline();
   }, 20000);
+}
+
+/* Status and navigation bar colours in the Android app */
+function applyChrome(theme) {
+  try {
+    if (window.BCNative && window.BCNative.setChrome) window.BCNative.setChrome(theme === "light" ? "light" : "dark");
+  } catch (e) {}
+}
+
+/* In the Android app, ask for notification permission once, right
+   after log in, so stage alerts work without hunting for a setting. */
+function maybeAskForAlerts() {
+  if (!Alerts.isNative()) return;
+  const n = Alerts.settings(currentData);
+  if (!n.enabled || n.asked || Alerts.permission() === "granted") return;
+  currentData.notify = Object.assign(n, { asked: true });
+  persist();
+  setTimeout(() => {
+    Alerts.requestPermission().then(() => { if (currentData) renderFastingPanel(); });
+  }, 900);
 }
 
 function renderAll() {
@@ -252,6 +284,7 @@ function renderAll() {
   renderHistory();
   renderProfileTab();
   renderAccentPicker();
+  Wallpaper.renderControls();
 }
 
 /* ---------------------------------------------------------
@@ -266,13 +299,30 @@ const VIEW_TITLES = {
   profile: "Profile"
 };
 
-function setActiveView(view) {
+let activeView = null;
+
+function setActiveView(view, initial) {
+  const changed = view !== activeView;
+  activeView = view;
   $all(".view").forEach(v => v.classList.remove("active"));
-  $("#view-" + view).classList.add("active");
+  const viewEl = $("#view-" + view);
+  viewEl.classList.add("active");
   $all(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.view === view));
-  $("#topbar-title").textContent = VIEW_TITLES[view];
+  Motion.setText($("#topbar-title"), VIEW_TITLES[view]);
+  if (changed) {
+    Motion.enterView(view, viewEl);
+    Motion.movePill(!!initial);
+    if (!initial) {
+      Motion.bounceTab($('.tab-btn[data-view="' + view + '"]'));
+      Motion.haptic("tab");
+    }
+    window.scrollTo(0, 0);
+  }
   if (view === "fasting") renderFastingPanel();
-  if (view === "dashboard") { renderRing(); renderDashboardStats(); renderDashboardWorkouts(); }
+  if (view === "dashboard") {
+    if (changed) Motion.replay($(".ring-wrap"), "enter");
+    renderRing(); renderDashboardStats(); renderDashboardWorkouts();
+  }
   if (view === "food") renderFood();
   if (view === "workouts") renderWorkouts();
   if (view === "history") renderHistory();
@@ -326,8 +376,8 @@ function renderRing() {
   statusEl.textContent = elapsed >= planHours ? "Eating window open" : "Fasting";
 
   const stage = currentStage(elapsed);
-  stageNameEl.textContent = stage.title;
-  stageDescEl.textContent = stage.body;
+  Motion.setText(stageNameEl, stage.title);
+  Motion.setText(stageDescEl, stage.body);
 
   renderRingTicks(planHours);
 }
@@ -372,8 +422,8 @@ function todayCalories() {
 
 function renderDashboardStats() {
   const eaten = todayCalories();
-  $("#dash-eaten").textContent = eaten;
-  $("#dash-goal").textContent = currentData.dailyGoal;
+  Motion.setNumber($("#dash-eaten"), eaten);
+  Motion.setNumber($("#dash-goal"), currentData.dailyGoal);
 
   if (currentData.lastMealISO) {
     const next = new Date(new Date(currentData.lastMealISO).getTime() + currentData.fastPlan * 3600000);
@@ -428,6 +478,7 @@ function renderFastingPanel() {
 
   renderStageTimeline();
   updateEndFastVisibility();
+  Alerts.render(currentData);
   $("#last-meal-warning").classList.add("hidden");
   $("#btn-use-now").classList.add("hidden");
 }
@@ -471,6 +522,8 @@ function setFastPlan(hours) {
   currentData.fastPlan = hours;
   persist();
   renderFastingPanel();
+  Motion.replay($('#fast-plan-select .seg-btn[data-value="' + hours + '"]'), "pop");
+  Motion.haptic("tick");
   renderRing();
   renderDashboardStats();
 }
@@ -507,6 +560,8 @@ function saveLastMeal() {
   applyNewLastMeal(date);
   $("#last-meal-warning").classList.add("hidden");
   $("#btn-use-now").classList.add("hidden");
+  Motion.haptic("confirm");
+  Motion.toast("Last meal saved. Fast started.");
 }
 
 function checkPastMealTime() {
@@ -561,14 +616,16 @@ function stopFasting() {
   renderDashboardStats();
   renderHistory();
   updateEndFastVisibility();
+  Motion.haptic("confirm");
+  Motion.toast("Fast logged to history");
 }
 
 /* ---------------------------------------------------------
    Food
 --------------------------------------------------------- */
 function renderFood() {
-  $("#food-eaten").textContent = todayCalories();
-  $("#food-goal").textContent = currentData.dailyGoal;
+  Motion.setNumber($("#food-eaten"), todayCalories());
+  Motion.setNumber($("#food-goal"), currentData.dailyGoal);
   renderFoodLogList();
 }
 
@@ -606,9 +663,14 @@ function renderFoodSearchResults(query) {
   });
 }
 
+let freshRowId = null;
+
 function addFoodEntry(name, calories) {
+  const id = uid("f");
+  freshRowId = id;
+  Motion.haptic("tick");
   currentData.foodLog.push({
-    id: uid("f"),
+    id: id,
     name: name,
     calories: Math.round(Number(calories)),
     date: todayStr(),
@@ -654,7 +716,7 @@ function renderFoodLogList() {
   $("#food-log-empty").style.display = entries.length === 0 ? "block" : "none";
   entries.forEach(f => {
     const row = document.createElement("div");
-    row.className = "food-log-row";
+    row.className = "food-log-row" + (f.id === freshRowId ? " row-in" : "");
 
     const left = document.createElement("div");
     const nameEl = document.createElement("div");
@@ -674,7 +736,7 @@ function renderFoodLogList() {
     const rm = document.createElement("button");
     rm.className = "remove-btn";
     rm.textContent = "\u2715";
-    rm.addEventListener("click", () => removeFoodEntry(f.id));
+    rm.addEventListener("click", () => Motion.removeRow(row, () => removeFoodEntry(f.id)));
     right.appendChild(calEl);
     right.appendChild(rm);
 
@@ -682,17 +744,22 @@ function renderFoodLogList() {
     row.appendChild(right);
     list.appendChild(row);
   });
+  freshRowId = null;
 }
 
 /* ---------------------------------------------------------
    Workouts
 --------------------------------------------------------- */
+let freshWorkoutId = null;
+let justToggledId = null;
+
 function buildWorkoutRow(w, done, showRemove) {
   const row = document.createElement("div");
-  row.className = "workout-row";
+  row.className = "workout-row" + (w.id === freshWorkoutId && showRemove !== false ? " row-in" : "");
 
   const check = document.createElement("button");
-  check.className = "workout-check" + (done ? " checked" : "");
+  check.className = "workout-check" + (done ? " checked" : "") + (w.id === justToggledId ? " just-checked" : "");
+  check.setAttribute("aria-label", (done ? "Uncheck " : "Check off ") + w.name);
   check.addEventListener("click", () => toggleWorkout(w.id));
 
   const textWrap = document.createElement("div");
@@ -721,7 +788,7 @@ function buildWorkoutRow(w, done, showRemove) {
     rm.className = "remove-btn";
     rm.style.marginLeft = "auto";
     rm.textContent = "\u2715";
-    rm.addEventListener("click", () => removeWorkout(w.id));
+    rm.addEventListener("click", () => Motion.removeRow(row, () => removeWorkout(w.id)));
     row.appendChild(rm);
   }
 
@@ -780,8 +847,11 @@ function upsertCustomWorkout(name, calories) {
 }
 
 function addWorkoutEntry(name, detail, calories) {
+  const id = uid("w");
+  freshWorkoutId = id;
+  Motion.haptic("tick");
   currentData.workouts.push({
-    id: uid("w"),
+    id: id,
     name: name,
     detail: detail || "",
     calories: Math.round(Number(calories)) || 0,
@@ -791,6 +861,7 @@ function addWorkoutEntry(name, detail, calories) {
   renderWorkouts();
   renderDashboardWorkouts();
   renderHistory();
+  freshWorkoutId = null;
 }
 
 function addWorkout() {
@@ -815,10 +886,13 @@ function toggleWorkout(id) {
   const idx = w.doneDates.indexOf(t);
   if (idx >= 0) w.doneDates.splice(idx, 1);
   else w.doneDates.push(t);
+  justToggledId = id;
+  Motion.haptic(idx >= 0 ? "tick" : "toggle");
   persist();
   renderWorkouts();
   renderDashboardWorkouts();
   renderHistory();
+  justToggledId = null;
 }
 
 function removeWorkout(id) {
@@ -954,15 +1028,21 @@ function exportBackup() {
     user: currentUser,
     data: currentData
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const text = JSON.stringify(payload, null, 2);
+  const fileName = "bc-tracker-" + currentUser.name.trim().replace(/\s+/g, "-").toLowerCase() + "-" + todayStr() + ".json";
+  if (window.BCNative && typeof window.BCNative.saveFile === "function") {
+    try { window.BCNative.saveFile(fileName, "application/json", text); return; } catch (e) {}
+  }
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "bc-tracker-" + currentUser.name.trim().replace(/\s+/g, "-").toLowerCase() + "-" + todayStr() + ".json";
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  Motion.toast("Backup downloaded");
 }
 
 function isValidBackup(obj) {
@@ -987,7 +1067,11 @@ function importBackupIntoCurrentProfile(file) {
       persist();
       document.documentElement.setAttribute("data-theme", currentData.theme || "dark");
       document.documentElement.setAttribute("data-accent", currentData.accent || "blue");
+      applyChrome(currentData.theme);
+      Wallpaper.setOpts(Object.assign({}, Wallpaper.DEFAULTS, currentData.wallpaper || {}));
       renderAll();
+      Motion.haptic("confirm");
+      Motion.toast("Backup restored");
     } catch (e) {
       errEl.textContent = "Could not read that file.";
     }
@@ -1044,6 +1128,8 @@ function saveProfile() {
   renderDashboardStats();
   renderFood();
   renderHistory();
+  Motion.haptic("confirm");
+  Motion.toast("Profile saved");
 }
 
 function calcBmi() {
@@ -1069,7 +1155,7 @@ function calcBmi() {
   else if (bmi < 30) category = "Overweight";
   else category = "Obesity range";
 
-  $("#bmi-number").textContent = bmi.toFixed(1);
+  Motion.setNumber($("#bmi-number"), bmi.toFixed(1));
   $("#bmi-category").textContent = category;
   $("#bmi-result").classList.remove("hidden");
 }
@@ -1082,6 +1168,7 @@ function renderAccentPicker() {
   ACCENTS.forEach(color => {
     const btn = document.createElement("button");
     btn.className = "accent-swatch" + (currentData.accent === color ? " active" : "");
+    btn.setAttribute("aria-label", color + " accent");
     btn.style.background = "var(--" + color + ")";
     btn.addEventListener("click", () => {
       currentData.accent = color;
@@ -1089,6 +1176,8 @@ function renderAccentPicker() {
       persist();
       renderAccentPicker();
       renderRing();
+      Motion.movePill();
+      Motion.haptic("tick");
     });
     wrap.appendChild(btn);
   });
@@ -1107,6 +1196,9 @@ function toggleTheme() {
   document.documentElement.setAttribute("data-theme", currentData.theme);
   persist();
   renderThemeIcon();
+  applyChrome(currentData.theme);
+  Motion.replay($("#btn-theme"), "spin");
+  Motion.haptic("toggle");
 }
 
 /* ---------------------------------------------------------
@@ -1199,6 +1291,116 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("#btn-calc-bmi").addEventListener("click", calcBmi);
 
+  /* Small pop on every segmented button tap */
+  document.addEventListener("click", e => {
+    const seg = e.target.closest(".segmented .seg-btn");
+    if (seg) { Motion.replay(seg, "pop"); Motion.haptic("tick"); }
+  });
+
+  /* Stage alerts */
+  $("#alerts-master").addEventListener("click", () => {
+    const n = Alerts.settings(currentData);
+    const isOn = $("#alerts-master").getAttribute("aria-checked") === "true";
+    if (isOn) {
+      currentData.notify = Object.assign(n, { enabled: false });
+      persist();
+      Motion.haptic("toggle");
+      renderFastingPanel();
+      return;
+    }
+    Alerts.requestPermission().then(ok => {
+      currentData.notify = Object.assign(Alerts.settings(currentData), { enabled: ok ? true : n.enabled, asked: true });
+      persist();
+      renderFastingPanel();
+      if (ok) { Motion.haptic("confirm"); Motion.toast("Stage alerts are on"); }
+      else {
+        Motion.haptic("reject");
+        Motion.toast(Alerts.isNative()
+          ? "Notifications are blocked. Allow them for B.C Tracker in your phone's settings."
+          : "Notifications are blocked for this site in your browser settings.", 3800);
+      }
+    });
+  });
+  $("#alert-chips").addEventListener("click", e => {
+    const c = e.target.closest(".alert-chip");
+    if (!c) return;
+    const n = Alerts.settings(currentData);
+    if (c.dataset.id === "done") n.complete = !n.complete;
+    else { const h = c.dataset.id.slice(1); n.stages[h] = !n.stages[h]; }
+    currentData.notify = n;
+    persist();
+    Motion.haptic("tick");
+    Alerts.render(currentData, { pop: c.dataset.id });
+  });
+  $("#alerts-past").addEventListener("click", () => {
+    const n = Alerts.settings(currentData);
+    n.pastPlan = !n.pastPlan;
+    currentData.notify = n;
+    persist();
+    Motion.haptic("toggle");
+    Alerts.render(currentData);
+  });
+  $("#btn-test-alert").addEventListener("click", () => { Alerts.test(); Motion.haptic("confirm"); Motion.toast("Test alert sent"); });
+  $("#btn-exact-alarms").addEventListener("click", () => {
+    try { window.BCNative.openExactAlarmSettings(); } catch (e) {}
+  });
+  $("#btn-add-widget").addEventListener("click", () => {
+    let ok = false;
+    try { ok = window.BCNative.pinWidget(); } catch (e) {}
+    if (!ok) Motion.toast("Long-press your home screen, tap Widgets, then find B.C Tracker.", 3800);
+  });
+
+  /* Wallpaper */
+  const pickWall = () => $("#wall-file-input").click();
+  $("#btn-wall-pick").addEventListener("click", pickWall);
+  $("#wall-thumb").addEventListener("click", pickWall);
+  $("#wall-file-input").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (file) Wallpaper.pick(file);
+    e.target.value = "";
+  });
+  $("#btn-wall-remove").addEventListener("click", () => { Wallpaper.remove(); Motion.haptic("toggle"); });
+  const saveWall = patch => {
+    currentData.wallpaper = Wallpaper.setOpts(patch);
+    persist();
+  };
+  $("#wall-op").addEventListener("input", e => saveWall({ op: Number(e.target.value) }));
+  $("#wall-blur").addEventListener("input", e => saveWall({ blur: Number(e.target.value) }));
+  $("#wall-fit").addEventListener("click", e => {
+    const b = e.target.closest(".seg-btn");
+    if (b) saveWall({ fit: b.dataset.value });
+  });
+  $("#wall-frost").addEventListener("click", () => {
+    saveWall({ frost: $("#wall-frost").getAttribute("aria-checked") !== "true" });
+    Motion.haptic("toggle");
+  });
+
+  /* Android back button: step back inside the app before leaving it */
+  window.bcBack = function () {
+    if (!currentUser) {
+      const open = $all(".auth-panel").find(p => !p.classList.contains("hidden"));
+      if (open && open.id !== "auth-welcome") { showAuthPanel("auth-welcome"); return true; }
+      return false;
+    }
+    if (!$("#end-fast-confirm").classList.contains("hidden")) { $("#btn-end-fast-cancel").click(); return true; }
+    if (activeView && activeView !== "dashboard") { setActiveView("dashboard"); return true; }
+    return false;
+  };
+
+  /* Coming back to the app: refresh the timer and permission state */
+  window.bcOnResume = function () {
+    if (!currentUser) return;
+    renderGreeting();
+    renderRing();
+    renderDashboardStats();
+    renderStageTimeline();
+    Alerts.render(currentData);
+    Alerts.syncNow(currentUser, currentData);
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !Alerts.isNative()) window.bcOnResume();
+  });
+
   renderProfileList();
 
   const session = getSession();
@@ -1207,7 +1409,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (user) loadApp(user);
   }
 
-  if ("serviceWorker" in navigator) {
+  if ("serviceWorker" in navigator && !window.BCNative && location.protocol !== "file:") {
     navigator.serviceWorker.register("service-worker.js").catch(() => {});
   }
 });
